@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/equals215/deepsentinel/daemonize"
 	"github.com/spf13/cobra"
 )
 
@@ -16,6 +17,8 @@ func main() {
 		},
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	daemonize.Cmd(rootCmd, daemonize.Client)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

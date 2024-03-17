@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/equals215/deepsentinel/api"
+	"github.com/equals215/deepsentinel/daemonize"
 	"github.com/spf13/cobra"
 )
 
@@ -16,6 +18,18 @@ func main() {
 		},
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	daemonize.Cmd(rootCmd, daemonize.Server)
+
+	apiCmd := &cobra.Command{
+		Use:   "run",
+		Short: "Run the API server",
+		Run: func(cmd *cobra.Command, args []string) {
+			api.NewServer().Listen(":5000")
+		},
+	}
+
+	rootCmd.AddCommand(apiCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
