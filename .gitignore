@@ -19,3 +19,6 @@
 
 # Go workspace file
 go.work
+
+# Exclude any directory named tmp
+tmp/
