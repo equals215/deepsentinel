@@ -20,16 +20,7 @@ func main() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	daemonize.Cmd(rootCmd, daemonize.Server)
-
-	apiCmd := &cobra.Command{
-		Use:   "run",
-		Short: "Run the API server",
-		Run: func(cmd *cobra.Command, args []string) {
-			api.NewServer().Listen(":5000")
-		},
-	}
-
-	rootCmd.AddCommand(apiCmd)
+	api.Cmd(rootCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
