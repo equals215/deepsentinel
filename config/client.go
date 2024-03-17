@@ -82,29 +82,7 @@ func (c *ClientConfig) loadFromEnvFile(filePath string) error {
 		return err
 	}
 
-	c.ServerAddress = os.Getenv("SERVER_ADDRESS")
-	machineStateStr := os.Getenv("MACHINE_STATE")
-	machineState, err := strconv.ParseBool(machineStateStr)
-	if err != nil {
-		return err
-	}
-	c.MachineState = machineState
-	consulStateStr := os.Getenv("CONSUL_STATE")
-	consulState, err := strconv.ParseBool(consulStateStr)
-	if err != nil {
-		return err
-	}
-	c.ConsulState = consulState
-	c.ConsulAddress = os.Getenv("CONSUL_ADDRESS")
-	c.ConsulPort = os.Getenv("CONSUL_PORT")
-	nomadStateStr := os.Getenv("NOMAD_STATE")
-	nomadState, err := strconv.ParseBool(nomadStateStr)
-	if err != nil {
-		return err
-	}
-	c.NomadState = nomadState
-	c.NomadAddress = os.Getenv("NOMAD_ADDRESS")
-	c.NomadPort = os.Getenv("NOMAD_PORT")
+	c.loadFromEnv()
 
 	return nil
 }
