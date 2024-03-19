@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/equals215/deepsentinel/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 // Server is the configuration for the server
@@ -14,14 +15,23 @@ var Server *ServerConfig
 
 // ServerConfig is the configuration for the server
 type ServerConfig struct {
-	ListeningAddress string `json:"listening_address"`
-	Port             int    `json:"port"`
-	AuthToken        string `json:"auth_token"`
+	ListeningAddress                 string `json:"listening_address"`
+	Port                             int    `json:"port"`
+	AuthToken                        string `json:"auth_token"`
+	ProbeInactivityDelaySeconds      int    `json:"probe_inactivity_delay_seconds"`
+	DegradedToFailedThreshold        int    `json:"degraded_to_failed_threshold"`
+	FailedToAlertedLowThreshold      int    `json:"failed_to_alerted_low_threshold"`
+	AlertedLowToAlertedHighThreshold int    `json:"alerted_low_to_alerted_high_threshold"`
 }
 
 // InitServer initializes the server configuration
 func InitServer() {
 	Server = newServerConfig()
+	log.Infof("Serving on %s:%d", Server.ListeningAddress, Server.Port)
+	log.Infof("Probe inactivity delay: %d seconds", Server.ProbeInactivityDelaySeconds)
+	log.Infof("Degraded to failed threshold: %d", Server.DegradedToFailedThreshold)
+	log.Infof("Failed to alerted low threshold: %d", Server.FailedToAlertedLowThreshold)
+	log.Infof("Alerted low to alerted high threshold: %d", Server.AlertedLowToAlertedHighThreshold)
 }
 
 func newServerConfig() *ServerConfig {
@@ -37,6 +47,10 @@ func newServerConfig() *ServerConfig {
 	config.ListeningAddress = "localhost"
 	config.Port = 5000
 	config.AuthToken = utils.RandStringBytesMaskImprSrcUnsafe(32)
+	config.ProbeInactivityDelaySeconds = 5
+	config.DegradedToFailedThreshold = 10
+	config.FailedToAlertedLowThreshold = 10
+	config.AlertedLowToAlertedHighThreshold = 10
 
 	err = config.saveToFile("/etc/deepsentinel/server-config.json")
 	if err != nil {

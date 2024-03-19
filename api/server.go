@@ -11,6 +11,11 @@ import (
 
 func initLogger() {
 	log.SetOutput(os.Stdout)
+	customFormatter := new(log.TextFormatter)
+	customFormatter.TimestampFormat = "2006-01-02 15:04:05.000"
+	log.SetFormatter(customFormatter)
+	customFormatter.FullTimestamp = true
+	log.Info("deepSentinel API server starting...")
 }
 
 func newServer() *fiber.App {
