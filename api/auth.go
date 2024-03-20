@@ -12,7 +12,7 @@ import (
 )
 
 var protectedURLs = []*regexp.Regexp{
-	regexp.MustCompile("^/report(/.*)?$"),
+	regexp.MustCompile("^/probe(/.*)?$"),
 }
 
 func authFilter(c *fiber.Ctx) bool {

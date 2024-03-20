@@ -35,7 +35,7 @@ func newServer() *fiber.App {
 		})
 	})
 
-	app.Post("/report/:machine", func(c *fiber.Ctx) error {
+	app.Post("/probe/:machine/report", func(c *fiber.Ctx) error {
 		machine := c.Params("machine")
 
 		// This shouldn't happen, desgined to catch Fiber's bug if ever
@@ -44,7 +44,8 @@ func newServer() *fiber.App {
 				"status": "fail",
 				"error":  "machine name is required",
 			})
-		} else if c.Body() == nil {
+		}
+		if c.Body() == nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"status":  "fail",
 				"machine": machine,
@@ -64,6 +65,35 @@ func newServer() *fiber.App {
 			"status":  "pass",
 			"machine": machine,
 		})
+	})
+
+	app.Delete("/probe/:machine/service/:service", func(c *fiber.Ctx) error {
+		machine := c.Params("machine")
+		service := c.Params("service")
+
+		// This shouldn't happen, desgined to catch Fiber's bug if ever
+		if machine == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status": "fail",
+				"error":  "machine name is required",
+			})
+		}
+		if service == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status":  "fail",
+				"machine": machine,
+				"error":   "service name is required",
+			})
+		}
+		if c.Body() == nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status":  "fail",
+				"machine": machine,
+				"error":   "payload is required",
+			})
+		}
+
+		return nil
 	})
 
 	return app
