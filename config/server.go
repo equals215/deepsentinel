@@ -22,17 +22,27 @@ type ServerConfig struct {
 	DegradedToFailedThreshold        int    `json:"degraded_to_failed_threshold"`
 	FailedToAlertedLowThreshold      int    `json:"failed_to_alerted_low_threshold"`
 	AlertedLowToAlertedHighThreshold int    `json:"alerted_low_to_alerted_high_threshold"`
+	LoggingLevel                     string `json:"logging_level"`
 }
 
 // InitServer initializes the server configuration
 func InitServer() {
 	Server = newServerConfig()
+
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+
+	logLevel, err := log.ParseLevel(Server.LoggingLevel)
+	if err != nil {
+		logLevel = log.InfoLevel
+		log.Warn("invalid logging level, defaulting to Info")
+	}
+	log.SetLevel(logLevel)
+
 	customFormatter := new(log.TextFormatter)
 	customFormatter.TimestampFormat = "2006-01-02 15:04:05.000"
-	log.SetFormatter(customFormatter)
 	customFormatter.FullTimestamp = true
+	log.SetFormatter(customFormatter)
+
 	log.Info("deepSentinel API server starting...")
 	log.Infof("Serving on %s:%d", Server.ListeningAddress, Server.Port)
 	log.Infof("Probe inactivity delay: %d seconds", Server.ProbeInactivityDelaySeconds)
@@ -58,6 +68,7 @@ func newServerConfig() *ServerConfig {
 	config.DegradedToFailedThreshold = 10
 	config.FailedToAlertedLowThreshold = 10
 	config.AlertedLowToAlertedHighThreshold = 10
+	config.LoggingLevel = "info"
 
 	err = config.saveToFile("/etc/deepsentinel/server-config.json")
 	if err != nil {
