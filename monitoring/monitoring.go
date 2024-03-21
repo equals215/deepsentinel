@@ -18,6 +18,17 @@ const (
 	alertedHigh
 )
 
+func (s probeStatus) String() string {
+	statusStr := map[probeStatus]string{
+		normal:      "normal",
+		degraded:    "degraded",
+		failed:      "failed",
+		alertedLow:  "alertedLow",
+		alertedHigh: "alertedHigh",
+	}
+	return statusStr[s]
+}
+
 // Payload is the structure of the payload received from the API server
 type Payload struct {
 	MachineStatus string            `json:"machineStatus"`
@@ -87,7 +98,7 @@ func (p *probeObject) work() {
 				"probe":   p.name,
 				"machine": payload.Machine,
 				"status":  p.status,
-			}).Info("Received report")
+			}).Trace("Received report")
 			p.StorePayload(payload)
 			p.reset()
 			timer.Reset(inactivityDelay)
@@ -101,23 +112,23 @@ func (p *probeObject) work() {
 func (p *probeObject) timerIncrement() {
 	switch p.status {
 	case normal:
-		p.updateStatus(degraded)
+		p.updateStatus()
 	case degraded:
 		p.counter++
 		if p.counter >= config.Server.DegradedToFailedThreshold {
-			p.updateStatus(failed)
+			p.updateStatus()
 			break
 		}
 	case failed:
 		p.counter++
 		if p.counter >= config.Server.FailedToAlertedLowThreshold {
-			p.updateStatus(alertedLow)
+			p.updateStatus()
 			break
 		}
 	case alertedLow:
 		p.counter++
 		if p.counter >= config.Server.AlertedLowToAlertedHighThreshold {
-			p.updateStatus(alertedHigh)
+			p.updateStatus()
 			break
 		}
 	case alertedHigh:
@@ -137,21 +148,13 @@ func (p *probeObject) reset() {
 	p.lastNormal = time.Now()
 }
 
-func (p *probeObject) updateStatus(status probeStatus) {
-	statusStr := map[probeStatus]string{
-		normal:      "normal",
-		degraded:    "degraded",
-		failed:      "failed",
-		alertedLow:  "alertedLow",
-		alertedHigh: "alertedHigh",
-	}
-
+func (p *probeObject) updateStatus() {
 	p.status++
 	p.counter = 0
-	if status > normal {
+	if p.status > normal {
 		duration := time.Since(p.lastNormal)
-		log.Warnf("No payload received for %s. Machine %s is now in %s state\n", duration.String(), p.name, statusStr[status])
+		log.Warnf("No payload received for %s. Machine %s is now in %s state\n", duration.String(), p.name, p.status.String())
 		return
 	}
-	log.Infof("Machine %s is now in %s state\n", p.name, statusStr[status])
+	log.Infof("Machine %s is now in %s state\n", p.name, p.status.String())
 }

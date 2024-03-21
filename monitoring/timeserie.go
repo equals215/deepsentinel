@@ -20,12 +20,11 @@ func (p *probeObject) StorePayload(payload *Payload) {
 		previous:  p.timeSerieHead,
 	}
 	p.timeSerieHead = newNode
-	log.Tracef("Stored payload for machine: %s in timeserie: %+v\n", p.name, newNode)
-	// log.WithFields(log.Fields{
-	// 	"probe":   p.name,
-	// 	"machine": payload.Machine,
-	// 	"status":  p.status,
-	// }).Info("Payload stored in timeserie")
+	log.WithFields(log.Fields{
+		"probe":   p.name,
+		"machine": payload.Machine,
+		"status":  p.status,
+	}).Trace("Payload stored in timeserie")
 }
 
 // GetStatus function : calculate the diff between the last and the current payload
