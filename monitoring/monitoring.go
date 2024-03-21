@@ -1,7 +1,6 @@
 package monitoring
 
 import (
-	"encoding/json"
 	"sync"
 	"time"
 
@@ -19,56 +18,57 @@ const (
 	alertedHigh
 )
 
-type payload struct {
+// Payload is the structure of the payload received from the API server
+type Payload struct {
 	MachineStatus string            `json:"machineStatus"`
 	Services      map[string]string `json:"services"`
-	timestamp     time.Time
-	machine       string
+	Timestamp     time.Time
+	Machine       string
 }
 
 type probeObject struct {
 	name          string
-	c             chan payload
+	c             chan *Payload
 	status        probeStatus
 	counter       int
 	lastNormal    time.Time
 	timeSerieHead *timeSerieNode
 }
 
-var probes sync.Map
-
-// IngestPayload function handles the payload from the API server
-func IngestPayload(machine string, rawPayload []byte) error {
-	parsedPayload := payload{}
-	err := json.Unmarshal(rawPayload, &parsedPayload)
-	if err != nil {
-		log.Errorf("Error unmarshalling payload: %s\n", err)
-		return err
+// Handle function handles the payload from the API server
+func Handle(channel chan *Payload) {
+	log.Debug("Starting monitoring.Handle")
+	var probes struct {
+		sync.Mutex
+		p map[string]*probeObject
 	}
+	probes.p = make(map[string]*probeObject)
+	for {
+		select {
+		case receivedPayload := <-channel:
+			probes.Lock()
+			if probe, ok := probes.p[receivedPayload.Machine]; ok {
+				probe.c <- receivedPayload
+			} else {
+				probe := &probeObject{
+					name:    receivedPayload.Machine,
+					c:       make(chan *Payload),
+					status:  normal,
+					counter: 0,
+				}
 
-	parsedPayload.timestamp = time.Now()
-	parsedPayload.machine = machine
-
-	if probe, ok := probes.Load(machine); ok {
-		probe.(*probeObject).c <- parsedPayload
-	} else {
-		probe := &probeObject{
-			name:    machine,
-			c:       make(chan payload),
-			status:  normal,
-			counter: 0,
+				probes.p[receivedPayload.Machine] = probe
+				log.WithFields(log.Fields{
+					"probe":   probe.name,
+					"machine": receivedPayload.Machine,
+					"status":  probe.status,
+				}).Info("Starting probe thread")
+				go probe.work()
+				probe.c <- receivedPayload
+			}
+			probes.Unlock()
 		}
-
-		probes.Store(machine, probe)
-		log.WithFields(log.Fields{
-			"probe":   probe.name,
-			"machine": machine,
-			"status":  probe.status,
-		}).Info("Starting probe thread")
-		go probe.work()
-		probe.c <- parsedPayload
 	}
-	return nil
 }
 
 func (p *probeObject) work() {
@@ -77,9 +77,15 @@ func (p *probeObject) work() {
 	for {
 		select {
 		case payload := <-p.c:
+			if payload.Machine != p.name {
+				log.WithFields(log.Fields{
+					"probe":   p.name,
+					"machine": payload.Machine,
+				}).Fatal("Discrepancy between probe and machine")
+			}
 			log.WithFields(log.Fields{
 				"probe":   p.name,
-				"machine": payload.machine,
+				"machine": payload.Machine,
 				"status":  p.status,
 			}).Info("Received report")
 			p.StorePayload(payload)

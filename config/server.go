@@ -28,7 +28,7 @@ type ServerConfig struct {
 func InitServer() {
 	Server = newServerConfig()
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 	customFormatter := new(log.TextFormatter)
 	customFormatter.TimestampFormat = "2006-01-02 15:04:05.000"
 	log.SetFormatter(customFormatter)

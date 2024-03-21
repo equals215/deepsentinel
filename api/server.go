@@ -1,12 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"time"
+
 	"github.com/equals215/deepsentinel/monitoring"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 )
 
-func newServer() *fiber.App {
+func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "DeepSentinel API",
 	})
@@ -41,7 +44,8 @@ func newServer() *fiber.App {
 			})
 		}
 
-		err := monitoring.IngestPayload(machine, c.Body())
+		parsedPayload := &monitoring.Payload{}
+		err := json.Unmarshal(c.Body(), &parsedPayload)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"status":  "fail",
@@ -49,9 +53,13 @@ func newServer() *fiber.App {
 				"error":   err.Error(),
 			})
 		}
+
+		parsedPayload.Timestamp = time.Now()
+		parsedPayload.Machine = machine
+
+		payloadChannel <- parsedPayload
 		return c.JSON(fiber.Map{
-			"status":  "pass",
-			"machine": machine,
+			"status": "pass",
 		})
 	})
 

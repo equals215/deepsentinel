@@ -13,15 +13,19 @@ type timeSerieNode struct {
 }
 
 // StoreStatus function : stores the payload into the timeserie
-func (p *probeObject) StorePayload(payload payload) {
-	newNode := timeSerieNode{timestamp: payload.timestamp, services: payload.Services, previous: p.timeSerieHead}
-	p.timeSerieHead = &newNode
-	log.Debugf("Stored payload for machine: %s in timeserie: %+v\n", p.name, newNode)
-	log.WithFields(log.Fields{
-		"probe":   p.name,
-		"machine": payload.machine,
-		"status":  p.status,
-	}).Info("Payload stored in timeserie")
+func (p *probeObject) StorePayload(payload *Payload) {
+	newNode := &timeSerieNode{
+		timestamp: payload.Timestamp,
+		services:  payload.Services,
+		previous:  p.timeSerieHead,
+	}
+	p.timeSerieHead = newNode
+	log.Tracef("Stored payload for machine: %s in timeserie: %+v\n", p.name, newNode)
+	// log.WithFields(log.Fields{
+	// 	"probe":   p.name,
+	// 	"machine": payload.Machine,
+	// 	"status":  p.status,
+	// }).Info("Payload stored in timeserie")
 }
 
 // GetStatus function : calculate the diff between the last and the current payload
