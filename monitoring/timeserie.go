@@ -1,13 +1,27 @@
 package monitoring
 
-import "time"
+import (
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
 
 type timeSerieNode struct {
-	time     time.Time
-	data     interface{}
-	previous *timeSerieNode
+	timestamp time.Time
+	services  map[string]string
+	previous  *timeSerieNode
 }
 
 // StoreStatus function : stores the payload into the timeserie
+func (p *probeObject) StorePayload(payload payload) {
+	newNode := timeSerieNode{timestamp: payload.timestamp, services: payload.Services, previous: p.timeSerieHead}
+	p.timeSerieHead = &newNode
+	log.Debugf("Stored payload for machine: %s in timeserie: %+v\n", p.name, newNode)
+	log.WithFields(log.Fields{
+		"probe":   p.name,
+		"machine": payload.machine,
+		"status":  p.status,
+	}).Info("Payload stored in timeserie")
+}
 
 // GetStatus function : calculate the diff between the last and the current payload

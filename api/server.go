@@ -1,27 +1,15 @@
 package api
 
 import (
-	"os"
-
 	"github.com/equals215/deepsentinel/monitoring"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
-	log "github.com/sirupsen/logrus"
 )
 
-func initLogger() {
-	log.SetOutput(os.Stdout)
-	customFormatter := new(log.TextFormatter)
-	customFormatter.TimestampFormat = "2006-01-02 15:04:05.000"
-	log.SetFormatter(customFormatter)
-	customFormatter.FullTimestamp = true
-	log.Info("deepSentinel API server starting...")
-}
-
 func newServer() *fiber.App {
-	initLogger()
-
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		AppName: "DeepSentinel API",
+	})
 
 	app.Use(keyauth.New(keyauth.Config{
 		Next:      authFilter,

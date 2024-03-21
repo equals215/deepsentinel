@@ -27,6 +27,13 @@ type ServerConfig struct {
 // InitServer initializes the server configuration
 func InitServer() {
 	Server = newServerConfig()
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
+	customFormatter := new(log.TextFormatter)
+	customFormatter.TimestampFormat = "2006-01-02 15:04:05.000"
+	log.SetFormatter(customFormatter)
+	customFormatter.FullTimestamp = true
+	log.Info("deepSentinel API server starting...")
 	log.Infof("Serving on %s:%d", Server.ListeningAddress, Server.Port)
 	log.Infof("Probe inactivity delay: %d seconds", Server.ProbeInactivityDelaySeconds)
 	log.Infof("Degraded to failed threshold: %d", Server.DegradedToFailedThreshold)

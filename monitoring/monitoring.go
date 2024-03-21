@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/equals215/deepsentinel/config"
@@ -21,6 +22,8 @@ const (
 type payload struct {
 	MachineStatus string            `json:"machineStatus"`
 	Services      map[string]string `json:"services"`
+	timestamp     time.Time
+	machine       string
 }
 
 type probeObject struct {
@@ -32,7 +35,7 @@ type probeObject struct {
 	timeSerieHead *timeSerieNode
 }
 
-var probes = make(map[string]probeObject)
+var probes sync.Map
 
 // IngestPayload function handles the payload from the API server
 func IngestPayload(machine string, rawPayload []byte) error {
@@ -43,12 +46,25 @@ func IngestPayload(machine string, rawPayload []byte) error {
 		return err
 	}
 
-	if probe, ok := probes[machine]; ok {
-		probe.c <- parsedPayload
+	parsedPayload.timestamp = time.Now()
+	parsedPayload.machine = machine
+
+	if probe, ok := probes.Load(machine); ok {
+		probe.(*probeObject).c <- parsedPayload
 	} else {
-		probe := probeObject{name: machine, c: make(chan payload), status: normal, counter: 0}
-		probes[machine] = probe
-		log.Infof("Starting probe for machine: %s\n", machine)
+		probe := &probeObject{
+			name:    machine,
+			c:       make(chan payload),
+			status:  normal,
+			counter: 0,
+		}
+
+		probes.Store(machine, probe)
+		log.WithFields(log.Fields{
+			"probe":   probe.name,
+			"machine": machine,
+			"status":  probe.status,
+		}).Info("Starting probe thread")
 		go probe.work()
 		probe.c <- parsedPayload
 	}
@@ -61,7 +77,12 @@ func (p *probeObject) work() {
 	for {
 		select {
 		case payload := <-p.c:
-			log.Infof("Received payload: %+v\n", payload)
+			log.WithFields(log.Fields{
+				"probe":   p.name,
+				"machine": payload.machine,
+				"status":  p.status,
+			}).Info("Received report")
+			p.StorePayload(payload)
 			p.reset()
 			timer.Reset(inactivityDelay)
 		case <-timer.C:
@@ -119,7 +140,7 @@ func (p *probeObject) updateStatus(status probeStatus) {
 		alertedHigh: "alertedHigh",
 	}
 
-	p.status = status
+	p.status++
 	p.counter = 0
 	if status > normal {
 		duration := time.Since(p.lastNormal)
