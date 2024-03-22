@@ -38,12 +38,14 @@ type Payload struct {
 }
 
 type probeObject struct {
-	name          string
-	c             chan *Payload
-	status        probeStatus
-	counter       int
-	lastNormal    time.Time
-	timeSerieHead *timeSerieNode
+	name           string
+	c              chan *Payload
+	status         probeStatus
+	counter        int
+	lastNormal     time.Time
+	timeSerieHead  *timeSerieNode
+	timeSerieSize  int
+	timeSerieMutex sync.Mutex
 }
 
 // Handle function handles the payload from the API server
@@ -99,7 +101,7 @@ func (p *probeObject) work() {
 				"machine": payload.Machine,
 				"status":  p.status,
 			}).Trace("Received report")
-			p.StorePayload(payload)
+			p.workServices(payload)
 			p.reset()
 			timer.Reset(inactivityDelay)
 		case <-timer.C:
