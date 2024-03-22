@@ -58,9 +58,7 @@ func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 		parsedPayload.Machine = machine
 
 		payloadChannel <- parsedPayload
-		return c.JSON(fiber.Map{
-			"status": "pass",
-		})
+		return c.SendStatus(fiber.StatusAccepted)
 	})
 
 	app.Delete("/probe/:machine/service/:service", func(c *fiber.Ctx) error {
