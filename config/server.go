@@ -15,14 +15,21 @@ var Server *ServerConfig
 
 // ServerConfig is the configuration for the server
 type ServerConfig struct {
-	ListeningAddress                 string `json:"listening_address"`
-	Port                             int    `json:"port"`
-	AuthToken                        string `json:"auth_token"`
-	ProbeInactivityDelaySeconds      int    `json:"probe_inactivity_delay_seconds"`
-	DegradedToFailedThreshold        int    `json:"degraded_to_failed_threshold"`
-	FailedToAlertedLowThreshold      int    `json:"failed_to_alerted_low_threshold"`
-	AlertedLowToAlertedHighThreshold int    `json:"alerted_low_to_alerted_high_threshold"`
-	LoggingLevel                     string `json:"logging_level"`
+	ListeningAddress                 string         `json:"listening_address"`
+	Port                             int            `json:"port"`
+	AuthToken                        string         `json:"auth_token"`
+	ProbeInactivityDelaySeconds      int            `json:"probe_inactivity_delay_seconds"`
+	DegradedToFailedThreshold        int            `json:"degraded_to_failed_threshold"`
+	FailedToAlertedLowThreshold      int            `json:"failed_to_alerted_low_threshold"`
+	AlertedLowToAlertedHighThreshold int            `json:"alerted_low_to_alerted_high_threshold"`
+	LoggingLevel                     string         `json:"logging_level"`
+	LowAlertProvider                 *AlertProvider `json:"low_alert_provider,omitempty"`  //LowAlertProvider can be nil for the moment
+	HighAlertProvider                *AlertProvider `json:"high_alert_provider,omitempty"` //HighAlertProvider can be nil for the moment
+}
+
+type AlertProvider struct {
+	PagerDuty *PagerDutyConfig `json:"PagerDuty,omitempty"`
+	KeepHQ    *KeepHQConfig    `json:"KeepHQ,omitempty"`
 }
 
 // InitServer initializes the server configuration
@@ -93,6 +100,36 @@ func (c *ServerConfig) loadFromFile(filePath string) error {
 	err = json.Unmarshal(data, c)
 	if err != nil {
 		return err
+	}
+
+	if c.LowAlertProvider != nil {
+		lowAlertProviderData, err := json.Marshal(c.LowAlertProvider)
+		if err != nil {
+			return err
+		}
+
+		var lowAlertProvider AlertProvider
+		err = json.Unmarshal(lowAlertProviderData, &lowAlertProvider)
+		if err != nil {
+			return err
+		}
+
+		c.LowAlertProvider = &lowAlertProvider
+	}
+
+	if c.HighAlertProvider != nil {
+		highAlertProviderData, err := json.Marshal(c.HighAlertProvider)
+		if err != nil {
+			return err
+		}
+
+		var highAlertProvider AlertProvider
+		err = json.Unmarshal(highAlertProviderData, &highAlertProvider)
+		if err != nil {
+			return err
+		}
+
+		c.HighAlertProvider = &highAlertProvider
 	}
 
 	return nil
