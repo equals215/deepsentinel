@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/equals215/deepsentinel/alerting"
 	"github.com/equals215/deepsentinel/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -183,13 +184,40 @@ func (p *probeObject) checkAlert() {
 	}
 
 	for service, status := range p.timeSerieHead.services {
-		if status.status == fail && status.count >= config.Server.DegradedToFailedThreshold+config.Server.FailedToAlertedLowThreshold {
+		var alertingStatus string
+		alert := false
+
+		lowThreshhold := config.Server.FailedToAlertedLowThreshold
+		highThreshhold := config.Server.FailedToAlertedLowThreshold + config.Server.AlertedLowToAlertedHighThreshold
+
+		if status.status == fail && status.count >= lowThreshhold && status.count < highThreshhold {
+			alertingStatus = "low"
+			alert = true
+		} else if status.status == fail && status.count == highThreshhold {
+			alertingStatus = "high"
+			alert = true
+		} else if status.status == fail && status.count > highThreshhold {
+			alert = false
+		} else {
+			continue
+		}
+
+		if alert {
 			log.WithFields(log.Fields{
 				"probe":   p.name,
 				"machine": p.name,
 				"service": service,
 				"status":  fail,
-			}).Warn("Service in fail status")
+			}).Warnf("Service in fail status. Alerting %s", alertingStatus)
+			service = p.name + "-" + service
+			alerting.Alert("service", service, alertingStatus)
+		} else if !alert && status.count%10 == 0 {
+			log.WithFields(log.Fields{
+				"probe":   p.name,
+				"machine": p.name,
+				"service": service,
+				"status":  fail,
+			}).Warn("Service still in fail status. Alerady alerted")
 		}
 	}
 }
