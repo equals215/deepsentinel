@@ -32,6 +32,29 @@ type AlertProvider struct {
 	KeepHQ    *KeepHQConfig    `json:"KeepHQ,omitempty"`
 }
 
+// GetProvider returns the alert provider
+func (a *AlertProvider) GetProvider() interface{} {
+	var pagerduty bool
+	var keephq bool
+
+	if a.PagerDuty != nil {
+		pagerduty = true
+	}
+	if a.KeepHQ != nil {
+		keephq = true
+	}
+
+	if pagerduty && keephq {
+		log.Fatal("too much alert providers are configured")
+	} else if pagerduty {
+		return a.PagerDuty
+	} else if keephq {
+		return a.KeepHQ
+	}
+
+	return nil
+}
+
 // InitServer initializes the server configuration
 func InitServer() {
 	Server = newServerConfig()

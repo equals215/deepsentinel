@@ -126,14 +126,14 @@ func (p *probeObject) timerIncrement() {
 		p.counter++
 		if p.counter >= config.Server.FailedToAlertedLowThreshold {
 			p.updateStatus()
-			alerting.Alert(config.Server.LowAlertProvider, "machine", p.name, "alertedLow")
+			alerting.Alert("machine", p.name, "low")
 			break
 		}
 	case alertedLow:
 		p.counter++
 		if p.counter >= config.Server.AlertedLowToAlertedHighThreshold {
 			p.updateStatus()
-			alerting.Alert(config.Server.HighAlertProvider, "machine", p.name, "alertedHigh")
+			alerting.Alert("machine", p.name, "high")
 			break
 		}
 	case alertedHigh:

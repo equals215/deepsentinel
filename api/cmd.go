@@ -17,7 +17,7 @@ func Cmd(rootCmd *cobra.Command) {
 		Short: "Run the API server",
 		Run: func(cmd *cobra.Command, args []string) {
 			config.InitServer()
-			alerting.Init()
+			alerting.Init(config.Server)
 
 			payloadChannel := make(chan *monitoring.Payload, 1)
 			go monitoring.Handle(payloadChannel)
