@@ -18,12 +18,9 @@ func Cmd(rootCmd *cobra.Command) {
 	apiCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the API server",
-		Run: func(cmd *cobra.Command, args []string) {
-			config.InitServer()
-			alerting.Init(config.Server, noAlerting)
-
-			payloadChannel := make(chan *monitoring.Payload, 1)
-			go monitoring.Handle(payloadChannel)
+		PreRun: func(cmd *cobra.Command, args []string) {
+			config.InitServerForPanicWatcher()
+			alerting.InitForPanicWatcher(config.Server, noAlerting)
 
 			//Start panicwatch to catch panics
 			err := panicwatch.Start(panicwatch.Config{
@@ -38,6 +35,14 @@ func Cmd(rootCmd *cobra.Command) {
 			if err != nil {
 				log.Fatalf("failed to start panicwatch: %s", err.Error())
 			}
+			log.Info("Panicwatch started")
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			config.InitServer()
+			alerting.Init(config.Server, noAlerting)
+			config.PrintConfig()
+			payloadChannel := make(chan *monitoring.Payload, 1)
+			go monitoring.Handle(payloadChannel)
 
 			addr := fmt.Sprintf("%s:%d", config.Server.ListeningAddress, config.Server.Port)
 			newServer(payloadChannel).Listen(addr)

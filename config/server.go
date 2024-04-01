@@ -57,8 +57,21 @@ func (a *AlertProvider) GetProvider() interface{} {
 
 // InitServer initializes the server configuration
 func InitServer() {
-	Server = newServerConfig()
+	_initServer(true)
+}
 
+// InitServerForPanicWatcher initializes the server configuration for the panic watcher
+func InitServerForPanicWatcher() {
+	_initServer(false)
+}
+
+func _initServer(verbose bool) {
+	Server = newServerConfig(verbose)
+
+	SetLogging()
+}
+
+func SetLogging() {
 	log.SetOutput(os.Stdout)
 
 	logLevel, err := log.ParseLevel(Server.LoggingLevel)
@@ -72,7 +85,10 @@ func InitServer() {
 	customFormatter.TimestampFormat = "2006-01-02 15:04:05.000"
 	customFormatter.FullTimestamp = true
 	log.SetFormatter(customFormatter)
+}
 
+// PrintConfig prints the server configuration
+func PrintConfig() {
 	log.Info("deepSentinel API server starting...")
 	log.Infof("Serving on %s:%d", Server.ListeningAddress, Server.Port)
 	log.Infof("Probe inactivity delay: %d seconds", Server.ProbeInactivityDelaySeconds)
@@ -81,7 +97,7 @@ func InitServer() {
 	log.Infof("Alerted low to alerted high threshold: %d", Server.AlertedLowToAlertedHighThreshold)
 }
 
-func newServerConfig() *ServerConfig {
+func newServerConfig(verbose bool) *ServerConfig {
 	config := &ServerConfig{}
 
 	err := config.loadFromFile("/etc/deepsentinel/server-config.json")
@@ -89,7 +105,9 @@ func newServerConfig() *ServerConfig {
 		return config
 	}
 
-	fmt.Println("Running with default configuration...")
+	if verbose {
+		fmt.Println("Running with default configuration...")
+	}
 
 	config.ListeningAddress = "localhost"
 	config.Port = 5000
