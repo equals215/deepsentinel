@@ -43,6 +43,11 @@ func NewInstance(config *config.PagerDutyConfig) PagerDutyInstance {
 	return pdInstance
 }
 
+// Name returns the name of the instance
+func (instance PagerDutyInstance) Name() string {
+	return "PagerDuty"
+}
+
 // Send sends an alert to PagerDuty
 func (instance PagerDutyInstance) Send(category, component, severity string) error {
 	if category == "machine" {
@@ -50,6 +55,9 @@ func (instance PagerDutyInstance) Send(category, component, severity string) err
 		return _sendPagerDutyAlert(instance, summary, component, severity)
 	} else if category == "service" {
 		summary := fmt.Sprintf("Deepsentinel - Service %s alert level is %s", component, severity)
+		return _sendPagerDutyAlert(instance, summary, component, severity)
+	} else if category == "deepsentinel" {
+		summary := fmt.Sprintf("Deepsentinel - %s error catched alert level is %s", component, severity)
 		return _sendPagerDutyAlert(instance, summary, component, severity)
 	}
 	summary := fmt.Sprintf("Unknown component %s is %s", component, severity)

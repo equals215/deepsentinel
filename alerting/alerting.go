@@ -15,6 +15,7 @@ type AlertingConfig struct {
 
 type AlertProvider interface {
 	Send(category, name, status string) error
+	Name() string
 }
 
 var Config AlertingConfig
@@ -66,13 +67,13 @@ func craftProvider(provider interface{}) (AlertProvider, error) {
 	return nil, fmt.Errorf("Provider is nil")
 }
 
-func Alert(category, name, status string) {
-	log.Info("Alerting ", category, " ", name, " ", status)
+func Alert(category, component, severity string) {
+	log.Tracef("Alerting %s %s %s", category, component, severity)
 
-	if status == "low" {
+	if severity == "low" {
 		if Config.lowAlertProvider != nil {
-			log.Info("Sending alert to low alert provider")
-			err := Config.lowAlertProvider.Send(category, name, status)
+			log.Infof("Sending alert to low alert provider: %s", Config.lowAlertProvider.Name())
+			err := Config.lowAlertProvider.Send(category, component, severity)
 			if err != nil {
 				log.Error("Failed to send low alert: ", err)
 			}
@@ -81,10 +82,10 @@ func Alert(category, name, status string) {
 		}
 	}
 
-	if status == "high" {
+	if severity == "high" {
 		if Config.highAlertProvider != nil {
-			log.Info("Sending alert to high alert provider")
-			err := Config.highAlertProvider.Send(category, name, status)
+			log.Infof("Sending alert to high alert provider: %s", Config.highAlertProvider.Name())
+			err := Config.highAlertProvider.Send(category, component, severity)
 			if err != nil {
 				log.Error("Failed to send high alert: ", err)
 			}
