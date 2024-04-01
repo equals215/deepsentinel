@@ -58,6 +58,7 @@ func (a *AlertProvider) GetProvider() interface{} {
 // InitServer initializes the server configuration
 func InitServer() {
 	_initServer(true)
+	SetLogging()
 }
 
 // InitServerForPanicWatcher initializes the server configuration for the panic watcher
@@ -67,8 +68,6 @@ func InitServerForPanicWatcher() {
 
 func _initServer(verbose bool) {
 	Server = newServerConfig(verbose)
-
-	SetLogging()
 }
 
 func SetLogging() {

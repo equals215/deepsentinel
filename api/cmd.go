@@ -40,6 +40,9 @@ func Cmd(rootCmd *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			config.InitServer()
 			alerting.Init(config.Server, noAlerting)
+
+			log.Infof("————————————")
+
 			config.PrintConfig()
 			payloadChannel := make(chan *monitoring.Payload, 1)
 			go monitoring.Handle(payloadChannel)

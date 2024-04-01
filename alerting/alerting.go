@@ -25,16 +25,16 @@ func Init(config *config.ServerConfig, noAlerting bool) {
 	_init(config, true, noAlerting)
 }
 
-func InitForPanicWatcher(config *config.ServerConfig, noAlerting bool) {
-	_init(config, false, noAlerting)
+func InitForPanicWatcher(serverConfig *config.ServerConfig, noAlerting bool) {
+	log.SetOutput(io.Discard)
+
+	_init(serverConfig, false, noAlerting)
+
+	config.SetLogging()
 }
 
 func _init(serverConfig *config.ServerConfig, verbose bool, noAlerting bool) {
 	var err error
-
-	if !verbose {
-		log.SetOutput(io.Discard)
-	}
 
 	if serverConfig.LowAlertProvider != nil {
 		providerConfig := serverConfig.LowAlertProvider.GetProvider()
@@ -59,10 +59,6 @@ func _init(serverConfig *config.ServerConfig, verbose bool, noAlerting bool) {
 		Config.lowAlertProvider = nil
 		Config.highAlertProvider = nil
 		log.Warn("Alerting is disabled due to -no-alert flag")
-	}
-
-	if !verbose {
-		config.SetLogging()
 	}
 }
 
