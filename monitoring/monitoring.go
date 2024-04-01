@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/equals215/deepsentinel/alerting"
 	"github.com/equals215/deepsentinel/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -125,12 +126,14 @@ func (p *probeObject) timerIncrement() {
 		p.counter++
 		if p.counter >= config.Server.FailedToAlertedLowThreshold {
 			p.updateStatus()
+			alerting.Alert(config.Server.LowAlertProvider, "machine", p.name, "alertedLow")
 			break
 		}
 	case alertedLow:
 		p.counter++
 		if p.counter >= config.Server.AlertedLowToAlertedHighThreshold {
 			p.updateStatus()
+			alerting.Alert(config.Server.HighAlertProvider, "machine", p.name, "alertedHigh")
 			break
 		}
 	case alertedHigh:
