@@ -19,7 +19,7 @@ type AlertProvider interface {
 
 var Config AlertingConfig
 
-func Init(config *config.ServerConfig) {
+func Init(config *config.ServerConfig, noAlerting bool) {
 	var err error
 
 	if config.LowAlertProvider != nil {
@@ -39,6 +39,12 @@ func Init(config *config.ServerConfig) {
 	} else {
 		Config.highAlertProvider = nil
 		log.Warn("High alert provider is not configured")
+	}
+
+	if noAlerting {
+		Config.lowAlertProvider = nil
+		Config.highAlertProvider = nil
+		log.Warn("Alerting is disabled due to -no-alert flag")
 	}
 }
 

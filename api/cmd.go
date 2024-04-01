@@ -11,13 +11,14 @@ import (
 
 // Cmd adds the API server command to the root command
 func Cmd(rootCmd *cobra.Command) {
+	var noAlerting bool
 
 	apiCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the API server",
 		Run: func(cmd *cobra.Command, args []string) {
 			config.InitServer()
-			alerting.Init(config.Server)
+			alerting.Init(config.Server, noAlerting)
 
 			payloadChannel := make(chan *monitoring.Payload, 1)
 			go monitoring.Handle(payloadChannel)
@@ -40,6 +41,7 @@ func Cmd(rootCmd *cobra.Command) {
 			newServer(payloadChannel).Listen(addr)
 		},
 	}
+	apiCmd.Flags().BoolVarP(&noAlerting, "no-alert", "", false, "Disable alerting")
 
 	rootCmd.AddCommand(apiCmd)
 }
