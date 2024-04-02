@@ -61,9 +61,8 @@ func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
-	app.Delete("/probe/:machine/service/:service", func(c *fiber.Ctx) error {
+	app.Delete("/probe/:machine", func(c *fiber.Ctx) error {
 		machine := c.Params("machine")
-		service := c.Params("service")
 
 		// This shouldn't happen, desgined to catch Fiber's bug if ever
 		if machine == "" {
@@ -72,22 +71,15 @@ func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 				"error":  "machine name is required",
 			})
 		}
-		if service == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"status":  "fail",
-				"machine": machine,
-				"error":   "service name is required",
-			})
-		}
-		if c.Body() == nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"status":  "fail",
-				"machine": machine,
-				"error":   "payload is required",
-			})
+
+		parsedPayload := &monitoring.Payload{
+			Machine:       machine,
+			MachineStatus: "delete",
+			Timestamp:     time.Now(),
 		}
 
-		return nil
+		payloadChannel <- parsedPayload
+		return c.SendStatus(fiber.StatusAccepted)
 	})
 
 	return app

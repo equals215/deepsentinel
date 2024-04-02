@@ -40,13 +40,15 @@ type Payload struct {
 
 type probeObject struct {
 	name           string
-	c              chan *Payload
+	data           chan *Payload
+	stop           chan bool
 	status         probeStatus
 	counter        int
 	lastNormal     time.Time
 	timeSerieHead  *timeSerieNode
 	timeSerieSize  int
 	timeSerieMutex sync.Mutex
+	closed         bool
 }
 
 // Handle function handles the payload from the API server
@@ -62,11 +64,21 @@ func Handle(channel chan *Payload) {
 		case receivedPayload := <-channel:
 			probes.Lock()
 			if probe, ok := probes.p[receivedPayload.Machine]; ok {
-				probe.c <- receivedPayload
+				if receivedPayload.MachineStatus == "delete" {
+					log.WithFields(log.Fields{
+						"probe":   probe.name,
+						"machine": receivedPayload.Machine,
+					}).Info("Deleting probe")
+					probe.stop <- true
+					delete(probes.p, receivedPayload.Machine)
+				} else {
+					probe.data <- receivedPayload
+				}
 			} else {
 				probe := &probeObject{
 					name:    receivedPayload.Machine,
-					c:       make(chan *Payload),
+					data:    make(chan *Payload),
+					stop:    make(chan bool),
 					status:  normal,
 					counter: 0,
 				}
@@ -78,7 +90,7 @@ func Handle(channel chan *Payload) {
 					"status":  probe.status,
 				}).Info("Starting probe thread")
 				go probe.work()
-				probe.c <- receivedPayload
+				probe.data <- receivedPayload
 			}
 			probes.Unlock()
 		}
@@ -90,7 +102,9 @@ func (p *probeObject) work() {
 	timer := time.NewTimer(inactivityDelay)
 	for {
 		select {
-		case payload := <-p.c:
+		case <-p.stop:
+			return
+		case payload := <-p.data:
 			if payload.Machine != p.name {
 				log.WithFields(log.Fields{
 					"probe":   p.name,
