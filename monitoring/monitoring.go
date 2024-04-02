@@ -48,7 +48,6 @@ type probeObject struct {
 	timeSerieHead  *timeSerieNode
 	timeSerieSize  int
 	timeSerieMutex sync.Mutex
-	closed         bool
 }
 
 // Handle function handles the payload from the API server
@@ -70,6 +69,8 @@ func Handle(channel chan *Payload) {
 						"machine": receivedPayload.Machine,
 					}).Info("Deleting probe")
 					probe.stop <- true
+					close(probe.data)
+					close(probe.stop)
 					delete(probes.p, receivedPayload.Machine)
 				} else {
 					probe.data <- receivedPayload
