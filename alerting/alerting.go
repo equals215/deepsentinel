@@ -80,7 +80,7 @@ func craftProvider(provider interface{}) (AlertProvider, error) {
 	return nil, fmt.Errorf("Provider is nil")
 }
 
-func Alert(category, component, severity string) {
+func ServerAlert(category, component, severity string) {
 	log.Tracef("Alerting %s %s %s", category, component, severity)
 
 	if severity == "low" {

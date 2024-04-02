@@ -72,7 +72,7 @@ Description=<service>
 After=network.target
 
 [Service]
-ExecStart=<binaryPath>
+ExecStart=<binaryPath> run
 Restart=always
 
 [Install]

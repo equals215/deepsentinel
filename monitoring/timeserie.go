@@ -210,7 +210,7 @@ func (p *probeObject) checkAlert() {
 				"status":  fail,
 			}).Warnf("Service in fail status. Alerting %s", alertingStatus)
 			service = p.name + "-" + service
-			alerting.Alert("service", service, alertingStatus)
+			alerting.ServerAlert("service", service, alertingStatus)
 		} else if !alert && status.count%10 == 0 {
 			log.WithFields(log.Fields{
 				"probe":   p.name,
