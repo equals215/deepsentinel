@@ -106,4 +106,16 @@ func ServerAlert(category, component, severity string) {
 			log.Warn("No high alert provider configured. Can't send alert.")
 		}
 	}
+
+	if severity == "panic" {
+		if Config.highAlertProvider != nil {
+			log.Infof("Sending alert to high alert provider: %s", Config.highAlertProvider.Name())
+			err := Config.highAlertProvider.Send(category, component, severity)
+			if err != nil {
+				log.Error("Failed to send panic alert: ", err)
+			}
+		} else {
+			log.Warn("No high alert provider configured. Can't send alert.")
+		}
+	}
 }

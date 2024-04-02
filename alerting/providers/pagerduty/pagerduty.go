@@ -57,7 +57,7 @@ func (instance PagerDutyInstance) Send(category, component, severity string) err
 		summary := fmt.Sprintf("Deepsentinel - Service %s alert level is %s", component, severity)
 		return _sendPagerDutyAlert(instance, summary, component, severity)
 	} else if category == "deepsentinel" {
-		summary := fmt.Sprintf("Deepsentinel - %s error catched alert level is %s", component, severity)
+		summary := fmt.Sprintf("Deepsentinel - %s %s error catched", component, severity)
 		return _sendPagerDutyAlert(instance, summary, component, severity)
 	}
 	summary := fmt.Sprintf("Unknown component %s is %s", component, severity)

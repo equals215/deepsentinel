@@ -25,7 +25,7 @@ func Cmd(rootCmd *cobra.Command) {
 			//Start panicwatch to catch panics
 			err := panicwatch.Start(panicwatch.Config{
 				OnPanic: func(p panicwatch.Panic) {
-					alerting.ServerAlert("deepsentinel", "panic", "high")
+					alerting.ServerAlert("deepsentinel", "server", "panic")
 				},
 				OnWatcherDied: func(err error) {
 					log.Error("panic watcher process died")
