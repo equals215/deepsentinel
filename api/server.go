@@ -72,13 +72,13 @@ func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 			})
 		}
 
-		parsedPayload := &monitoring.Payload{
+		payload := &monitoring.Payload{
 			Machine:       machine,
 			MachineStatus: "delete",
 			Timestamp:     time.Now(),
 		}
 
-		payloadChannel <- parsedPayload
+		payloadChannel <- payload
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
