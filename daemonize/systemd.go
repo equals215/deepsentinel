@@ -8,9 +8,9 @@ import (
 
 var (
 	serverServiceFileName = "deepsentinel-server.service"
-	clientServiceFileName = "deepsentinel-client.service"
+	agentServiceFileName  = "deepsentinel-agent.service"
 	serverServiceFilePath = "/etc/systemd/system/" + serverServiceFileName
-	clientServiceFilePath = "/etc/systemd/system/" + clientServiceFileName
+	agentServiceFilePath  = "/etc/systemd/system/" + agentServiceFileName
 )
 
 type systemdDaemon struct {
@@ -21,8 +21,8 @@ func (d *systemdDaemon) isDaemonInstalled(component daemonType) bool {
 	var serviceFileName string
 	if component == Server {
 		serviceFileName = serverServiceFileName
-	} else if component == Client {
-		serviceFileName = clientServiceFileName
+	} else if component == Agent {
+		serviceFileName = agentServiceFileName
 	}
 
 	cmd := exec.Command("systemctl", "is-enabled", serviceFileName)
@@ -37,8 +37,8 @@ func (d *systemdDaemon) isDaemonRunning(component daemonType) bool {
 	var serviceFileName string
 	if component == Server {
 		serviceFileName = serverServiceFileName
-	} else if component == Client {
-		serviceFileName = clientServiceFileName
+	} else if component == Agent {
+		serviceFileName = agentServiceFileName
 	}
 
 	cmd := exec.Command("systemctl", "is-active", serviceFileName)
@@ -59,11 +59,11 @@ func (d *systemdDaemon) installDaemon(component daemonType) error {
 		binaryPath = serverBinaryPath
 		serviceFilePath = serverServiceFilePath
 		serviceName = "deepSentinel Server"
-	} else if component == Client {
-		serviceFileName = clientServiceFileName
-		binaryPath = clientBinaryPath
-		serviceFilePath = clientServiceFilePath
-		serviceName = "deepSentinel Client"
+	} else if component == Agent {
+		serviceFileName = agentServiceFileName
+		binaryPath = agentBinaryPath
+		serviceFilePath = agentServiceFilePath
+		serviceName = "deepSentinel Agent"
 	}
 
 	// Copy the systemd-template.service to serviceFilePath
@@ -108,10 +108,10 @@ func (d *systemdDaemon) uninstallDaemon(component daemonType) error {
 		serviceFileName = serverServiceFileName
 		serviceFilePath = serverServiceFilePath
 		binaryPath = serverBinaryPath
-	} else if component == Client {
-		serviceFileName = clientServiceFileName
-		serviceFilePath = clientServiceFilePath
-		binaryPath = clientBinaryPath
+	} else if component == Agent {
+		serviceFileName = agentServiceFileName
+		serviceFilePath = agentServiceFilePath
+		binaryPath = agentBinaryPath
 	}
 
 	err := d.stopDaemon(component)
@@ -148,8 +148,8 @@ func (d *systemdDaemon) updateDaemon(component daemonType) error {
 	var binaryPath string
 	if component == Server {
 		binaryPath = serverBinaryPath
-	} else if component == Client {
-		binaryPath = clientBinaryPath
+	} else if component == Agent {
+		binaryPath = agentBinaryPath
 	}
 
 	d.stopDaemon(component)
@@ -170,8 +170,8 @@ func (d *systemdDaemon) stopDaemon(component daemonType) error {
 	var serviceFileName string
 	if component == Server {
 		serviceFileName = serverServiceFileName
-	} else if component == Client {
-		serviceFileName = clientServiceFileName
+	} else if component == Agent {
+		serviceFileName = agentServiceFileName
 	}
 
 	cmd := exec.Command("systemctl", "stop", serviceFileName)
@@ -186,8 +186,8 @@ func (d *systemdDaemon) startDaemon(component daemonType) error {
 	var serviceFileName string
 	if component == Server {
 		serviceFileName = serverServiceFileName
-	} else if component == Client {
-		serviceFileName = clientServiceFileName
+	} else if component == Agent {
+		serviceFileName = agentServiceFileName
 	}
 
 	cmd := exec.Command("systemctl", "start", serviceFileName)
@@ -202,8 +202,8 @@ func (d *systemdDaemon) restartDaemon(component daemonType) error {
 	var serviceFileName string
 	if component == Server {
 		serviceFileName = serverServiceFileName
-	} else if component == Client {
-		serviceFileName = clientServiceFileName
+	} else if component == Agent {
+		serviceFileName = agentServiceFileName
 	}
 
 	cmd := exec.Command("systemctl", "restart", serviceFileName)

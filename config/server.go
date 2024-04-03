@@ -70,24 +70,8 @@ func _initServer(verbose bool) {
 	Server = newServerConfig(verbose)
 }
 
-func SetLogging() {
-	log.SetOutput(os.Stdout)
-
-	logLevel, err := log.ParseLevel(Server.LoggingLevel)
-	if err != nil {
-		logLevel = log.InfoLevel
-		log.Warn("invalid logging level, defaulting to Info")
-	}
-	log.SetLevel(logLevel)
-
-	customFormatter := new(log.TextFormatter)
-	customFormatter.TimestampFormat = "2006-01-02 15:04:05.000"
-	customFormatter.FullTimestamp = true
-	log.SetFormatter(customFormatter)
-}
-
-// PrintConfig prints the server configuration
-func PrintConfig() {
+// PrintServerConfig prints the server configuration
+func PrintServerConfig() {
 	log.Info("deepSentinel API server starting...")
 	log.Infof("Serving on %s:%d", Server.ListeningAddress, Server.Port)
 	log.Infof("Probe inactivity delay: %d seconds", Server.ProbeInactivityDelaySeconds)

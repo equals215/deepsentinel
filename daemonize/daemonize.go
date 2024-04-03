@@ -15,12 +15,12 @@ type daemonType int
 // Daemon types
 const (
 	Server daemonType = iota
-	Client
+	Agent
 )
 
 var (
 	serverBinaryPath = "/etc/deepsentinel/server"
-	clientBinaryPath = "/etc/deepsentinel/client"
+	agentBinaryPath  = "/etc/deepsentinel/client"
 )
 
 type daemon interface {
@@ -58,9 +58,9 @@ func Daemonize(component daemonType, update bool) {
 			fmt.Printf("Installing daemon: %v\n", err)
 			os.Exit(1)
 		}
-		if component == Client {
-			if _, err := os.Stat(clientBinaryPath); errors.Is(err, os.ErrNotExist) {
-				copyBinary(clientBinaryPath)
+		if component == Agent {
+			if _, err := os.Stat(agentBinaryPath); errors.Is(err, os.ErrNotExist) {
+				copyBinary(agentBinaryPath)
 			}
 		} else if component == Server {
 			if _, err := os.Stat(serverBinaryPath); errors.Is(err, os.ErrNotExist) {

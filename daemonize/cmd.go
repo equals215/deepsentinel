@@ -11,8 +11,8 @@ func Cmd(rootCmd *cobra.Command, component daemonType) {
 	var componentStr string
 	if component == Server {
 		componentStr = "server"
-	} else if component == Client {
-		componentStr = "client"
+	} else if component == Agent {
+		componentStr = "agent"
 	}
 
 	daemonizeCmd := &cobra.Command{

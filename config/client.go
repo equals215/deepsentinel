@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Client is the configuration for the client
@@ -12,7 +15,10 @@ var Client *ClientConfig
 
 // ClientConfig is the configuration for the client
 type ClientConfig struct {
+	sync.Mutex
 	ServerAddress string `json:"server_address"`
+	MachineName   string `json:"machine_name"`
+	LoggingLevel  string `json:"logging_level"`
 	AuthToken     string `json:"auth_token"`
 	MachineState  bool   `json:"machine_state"`
 	ConsulState   bool   `json:"consul_state"`
@@ -23,29 +29,51 @@ type ClientConfig struct {
 	NomadPort     string `json:"nomad_port"`
 }
 
-// InitClient initializes the client configuration
-func InitClient() {
-	Client = newClientConfig()
+// ServiceConfig is the configuration for the service
+type ServiceConfig struct {
+	ServiceName string `json:"service_name"`
 }
 
-func newClientConfig() *ClientConfig {
-	config := &ClientConfig{}
+// InitClient initializes the client configuration
+func InitClient() {
+	_initClient(true)
+	SetLogging()
+}
 
-	err := config.loadFromFile("/etc/deepsentinel/client-config.json")
+// InitClientForPanicWatcher initializes the client configuration for the panic watcher
+func InitClientForPanicWatcher() {
+	_initClient(false)
+}
+
+func _initClient(verbose bool) {
+	Client = &ClientConfig{}
+	Client.Lock()
+	newClientConfig(verbose)
+	Client.Unlock()
+}
+
+func newClientConfig(verbose bool) {
+	err := Client.loadFromFile("/etc/deepsentinel/client-config.json")
 	if err == nil {
-		return config
+		return
 	}
 
-	fmt.Println("Running with default configuration...")
+	if verbose {
+		fmt.Println("Running with default configuration...")
+	}
 
-	config.ServerAddress = "localhost:5000"
-	config.MachineState = true
-	config.ConsulState = false
-	config.NomadState = false
+	Client.ServerAddress = "localhost:5000"
+	Client.MachineState = true
+	Client.ConsulState = false
+	Client.NomadState = false
+	Client.LoggingLevel = "info"
 
-	config.saveToFile("/etc/deepsentinel/client-config.json")
+	Client.saveToFile("/etc/deepsentinel/client-config.json")
+}
 
-	return config
+func PrintClientConfig() {
+	log.Info("deepSentinel agent starting...")
+	log.Infof("Server address: %s\n", Client.ServerAddress)
 }
 
 // loadFromFile loads the configuration from a JSON file

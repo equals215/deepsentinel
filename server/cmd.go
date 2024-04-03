@@ -1,4 +1,4 @@
-package api
+package server
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 func Cmd(rootCmd *cobra.Command) {
 	var noAlerting bool
 
-	apiCmd := &cobra.Command{
+	serverCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the API server",
 		PreRun: func(cmd *cobra.Command, args []string) {
@@ -43,7 +43,7 @@ func Cmd(rootCmd *cobra.Command) {
 
 			log.Infof("————————————")
 
-			config.PrintConfig()
+			config.PrintServerConfig()
 			payloadChannel := make(chan *monitoring.Payload, 1)
 			go monitoring.Handle(payloadChannel)
 
@@ -51,7 +51,7 @@ func Cmd(rootCmd *cobra.Command) {
 			newServer(payloadChannel).Listen(addr)
 		},
 	}
-	apiCmd.Flags().BoolVarP(&noAlerting, "no-alert", "", false, "Disable alerting")
+	serverCmd.Flags().BoolVarP(&noAlerting, "no-alert", "", false, "Disable alerting")
 
-	rootCmd.AddCommand(apiCmd)
+	rootCmd.AddCommand(serverCmd)
 }

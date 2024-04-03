@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/equals215/deepsentinel/api"
 	"github.com/equals215/deepsentinel/daemonize"
+	"github.com/equals215/deepsentinel/server"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func main() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	daemonize.Cmd(rootCmd, daemonize.Server)
-	api.Cmd(rootCmd)
+	server.Cmd(rootCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
