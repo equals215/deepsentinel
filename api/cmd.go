@@ -29,7 +29,7 @@ func Cmd(rootCmd *cobra.Command) {
 				},
 				OnWatcherDied: func(err error) {
 					log.Error("panic watcher process died")
-					alerting.ServerAlert("deepsentinel", "paniwatcher", "low")
+					alerting.ServerAlert("deepsentinel", "panicwatcher", "low")
 				},
 			})
 			if err != nil {
