@@ -72,7 +72,7 @@ func newClientConfig(verbose bool) {
 		fmt.Println("Running with default configuration...")
 	}
 
-	Client.ServerAddress = "localhost:5000"
+	Client.ServerAddress = "http://localhost:5000"
 	Client.MachineState = true
 	Client.ConsulState = false
 	Client.NomadState = false

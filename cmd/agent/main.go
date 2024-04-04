@@ -22,6 +22,7 @@ func main() {
 	daemonize.Cmd(rootCmd, daemonize.Agent)
 	agent.Cmd(rootCmd)
 	agent.ConfigCmd(rootCmd)
+	agent.UnregisterCmd(rootCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

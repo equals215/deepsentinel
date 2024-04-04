@@ -36,8 +36,7 @@ func Cmd(rootCmd *cobra.Command) {
 			}
 			defer sock.Close()
 
-			stop := make(chan bool)
-			go socketIPCHandler(sock, stop)
+			go socketIPCHandler(sock)
 
 			work()
 		},

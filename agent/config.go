@@ -18,11 +18,17 @@ var instructionMap = map[string]func(...any) error{
 }
 
 func doConfigInstruction(instruction string, args []string) error {
+	var message string
+
 	err := testIPCSocket()
-	message := fmt.Sprintf("%s=%s", instruction, strings.Join(args, ","))
+	if instruction == "unregister" {
+		message = "stop"
+	} else {
+		message = fmt.Sprintf("%s=%s", instruction, strings.Join(args, ","))
+	}
 	log.Trace("Instruction is: ", message)
 	if err != nil {
-		if errors.Is(err, syscall.ECONNREFUSED) {
+		if errors.Is(err, syscall.ECONNREFUSED) && instruction != "unregister" {
 			log.Trace("Daemon not running or not acepting connections. Configuring client directly.")
 			processRequest(message)
 			return nil
@@ -67,11 +73,16 @@ func configServerAddressCmd() *cobra.Command {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Set server address to", args[0])
-			_, err := url.Parse(args[0])
+			url, err := url.Parse(args[0])
 			if err != nil {
 				fmt.Println("Invalid URL:", err)
 				os.Exit(1)
 			}
+			if url.Scheme != "http" && url.Scheme != "https" {
+				fmt.Println("URL scheme is required")
+				os.Exit(1)
+			}
+
 			log.Trace("URL is valid")
 			err = doConfigInstruction("server-address", args)
 			if err != nil {

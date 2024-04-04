@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/equals215/deepsentinel/config"
@@ -12,6 +13,10 @@ import (
 )
 
 var socketAddress = "/tmp/deepsentinel.sock"
+var stop = struct {
+	val bool
+	sync.Mutex
+}{}
 
 func startSocketServer() (*net.UnixListener, error) {
 	os.Remove(socketAddress)
@@ -31,26 +36,27 @@ func startSocketServer() (*net.UnixListener, error) {
 // socketIPCHandler is a function that handles incoming IPC messages
 // messages are formed by the cli and sent to the agent
 // format is like so "command:arg1,arg2,arg3"
-func socketIPCHandler(sock *net.UnixListener, stop chan bool) {
+func socketIPCHandler(sock *net.UnixListener) {
 	for {
-		select {
-		case <-stop:
+		stop.Lock()
+		if stop.val {
+			stop.Unlock()
 			return
-		default:
-			sock.SetDeadline(time.Now().Add(1 * time.Millisecond))
-			conn, err := sock.Accept()
-			if err != nil {
-				if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
-					// Accept timeout, continue to check for stop signal
-					continue
-				}
-				fmt.Println("Error accepting:", err.Error())
+		}
+		stop.Unlock()
+		sock.SetDeadline(time.Now().Add(1 * time.Millisecond))
+		conn, err := sock.Accept()
+		if err != nil {
+			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+				// Accept timeout, continue to check for stop signal
 				continue
 			}
-
-			log.Debug("New client connected.")
-			handleRequest(conn)
+			fmt.Println("Error accepting:", err.Error())
+			continue
 		}
+
+		log.Debug("New client connected.")
+		handleRequest(conn)
 	}
 }
 
@@ -69,10 +75,16 @@ func handleRequest(conn net.Conn) {
 	if recvMessage == "ping" {
 		log.Trace("Answering with pong")
 		conn.Write([]byte("pong"))
+	} else if recvMessage == "stop" {
+		log.Info("Gracefully stopping agent...")
+		stop.Lock()
+		stop.val = true
+		stop.Unlock()
+		conn.Write([]byte("ok"))
 	} else {
 		resp, err := processRequest(recvMessage)
 		if err != nil {
-			fmt.Println("Error processing request:", err.Error())
+			log.Errorf("Error processing request: %s", err.Error())
 			return
 		}
 		config.RefreshClientConfig()
@@ -92,6 +104,7 @@ func processRequest(message string) (string, error) {
 	// arguments: "https://example.com"
 	parts := strings.Split(message, "=")
 	if handler, ok := instructionMap[parts[0]]; ok {
+		log.Trace("Processing instruction:", parts[0])
 		args := strings.Split(parts[1], ",")
 		argInterfaces := make([]interface{}, len(args))
 		for i, arg := range args {
@@ -103,7 +116,7 @@ func processRequest(message string) (string, error) {
 		}
 		return "ok", nil
 	}
-	return "unknown command", nil
+	return "", fmt.Errorf("unknown instruction: %s", parts[0])
 }
 
 func testIPCSocket() error {
