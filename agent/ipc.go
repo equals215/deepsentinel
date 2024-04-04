@@ -11,7 +11,6 @@ import (
 )
 
 var socketAddress = "/tmp/deepsentinel.sock"
-var instructionMap map[string]func(...any) error
 
 func startSocketServer() (*net.UnixListener, error) {
 	os.Remove(socketAddress)
@@ -32,7 +31,6 @@ func startSocketServer() (*net.UnixListener, error) {
 // messages are formed by the cli and sent to the agent
 // format is like so "command:arg1,arg2,arg3"
 func socketIPCHandler(sock *net.UnixListener, stop chan bool) {
-	instructionMap = buildConfigInstructionMap()
 	for {
 		select {
 		case <-stop:

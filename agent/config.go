@@ -13,10 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildConfigInstructionMap() map[string]func(...any) error {
-	return map[string]func(...any) error{
-		"server-address": config.ClientSetServerAddress,
-	}
+var instructionMap = map[string]func(...any) error{
+	"server-address": config.ClientSetServerAddress,
 }
 
 func doConfigInstruction(instruction string, args []string) error {
@@ -26,7 +24,6 @@ func doConfigInstruction(instruction string, args []string) error {
 	if err != nil {
 		if errors.Is(err, syscall.ECONNREFUSED) {
 			log.Trace("Daemon not running or not acepting connections. Configuring client directly.")
-			instructionMap = buildConfigInstructionMap()
 			processRequest(message)
 			return nil
 		}
