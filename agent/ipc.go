@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/equals215/deepsentinel/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,6 +75,9 @@ func handleRequest(conn net.Conn) {
 			fmt.Println("Error processing request:", err.Error())
 			return
 		}
+		config.RefreshClientConfig()
+		refresh := true
+		config.PrintClientConfig(refresh)
 		conn.Write([]byte(resp))
 	}
 }

@@ -52,6 +52,16 @@ func _initClient(verbose bool) {
 	Client.Unlock()
 }
 
+func RefreshClientConfig() {
+	Client.Lock()
+	err := Client.loadFromFile("/etc/deepsentinel/client-config.json")
+	if err != nil {
+		log.Errorf("failed to load client config: %s", err)
+	}
+	log.Trace("Client config refreshed")
+	Client.Unlock()
+}
+
 func newClientConfig(verbose bool) {
 	err := Client.loadFromFile("/etc/deepsentinel/client-config.json")
 	if err == nil {
@@ -71,9 +81,16 @@ func newClientConfig(verbose bool) {
 	Client.saveToFile("/etc/deepsentinel/client-config.json")
 }
 
-func PrintClientConfig() {
-	log.Info("deepSentinel agent starting...")
-	log.Infof("Server address: %s\n", Client.ServerAddress)
+func PrintClientConfig(refresh ...bool) {
+	refresh = append(refresh, false)
+	printToLevel := func(format string, args ...interface{}) {}
+	if refresh[0] == true {
+		printToLevel = log.Tracef
+	} else {
+		printToLevel = log.Infof
+		printToLevel("deepSentinel agent starting...")
+	}
+	printToLevel("Server address: %s\n", Client.ServerAddress)
 }
 
 // loadFromFile loads the configuration from a JSON file
