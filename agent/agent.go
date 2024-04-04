@@ -18,6 +18,10 @@ func work() {
 			return
 		}
 		stop.Unlock()
+		err := reportAlive()
+		if err != nil {
+			log.Errorf("error reporting alive: %v", err)
+		}
 		time.Sleep(1 * time.Second)
 	}
 }
