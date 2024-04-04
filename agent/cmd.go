@@ -3,7 +3,6 @@ package agent
 import (
 	"github.com/equals215/deepsentinel/config"
 	"github.com/grongor/panicwatch"
-	ipc "github.com/james-barrow/golang-ipc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -31,11 +30,14 @@ func Cmd(rootCmd *cobra.Command) {
 			log.Info("————————————")
 			config.PrintClientConfig()
 
-			s, err := ipc.StartServer("deepsentinel-"+config.Client.MachineName, nil)
+			sock, err := startSocketServer()
 			if err != nil {
-				log.Fatalf("failed to start IPC server: %s", err.Error())
+				log.Fatalf("failed to start IPC socket server: %s", err.Error())
 			}
-			go ipcHandler(s)
+			defer sock.Close()
+
+			stop := make(chan bool)
+			go socketIPCHandler(sock, stop)
 
 			work()
 		},
