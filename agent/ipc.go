@@ -41,6 +41,7 @@ func socketIPCHandler(sock *net.UnixListener) {
 		stop.Lock()
 		if stop.val {
 			stop.Unlock()
+			sock.Close()
 			return
 		}
 		stop.Unlock()

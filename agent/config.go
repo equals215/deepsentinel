@@ -15,6 +15,8 @@ import (
 
 var instructionMap = map[string]func(...any) error{
 	"server-address": config.ClientSetServerAddress,
+	"auth-token":     config.ClientSetAuthToken,
+	"machine-name":   config.ClientSetMachineName,
 }
 
 func doConfigInstruction(instruction string, args []string) error {
@@ -28,7 +30,7 @@ func doConfigInstruction(instruction string, args []string) error {
 	}
 	log.Trace("Instruction is: ", message)
 	if err != nil {
-		if errors.Is(err, syscall.ECONNREFUSED) && instruction != "unregister" {
+		if (errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, os.ErrNotExist)) && instruction != "unregister" {
 			log.Trace("Daemon not running or not acepting connections. Configuring client directly.")
 			processRequest(message)
 			return nil
@@ -61,6 +63,8 @@ func ConfigCmd(rootCmd *cobra.Command) {
 
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configServerAddressCmd())
+	configCmd.AddCommand(configAuthTokenCmd())
+	configCmd.AddCommand(configMachineNameCmd())
 }
 
 func configServerAddressCmd() *cobra.Command {
@@ -94,4 +98,46 @@ func configServerAddressCmd() *cobra.Command {
 	}
 
 	return configServerAddressCmd
+}
+
+func configAuthTokenCmd() *cobra.Command {
+	configAuthTokenCmd := &cobra.Command{
+		Use:   "auth-token [token]",
+		Short: "Set the authentication token",
+		Args:  cobra.ExactArgs(1),
+		PreRun: func(cmd *cobra.Command, args []string) {
+			config.SetLogging()
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			err := doConfigInstruction("auth-token", args)
+			if err != nil {
+				fmt.Println("Failed to set server address:", err)
+				os.Exit(1)
+			}
+			log.Trace("Auth token set successfully.")
+		},
+	}
+
+	return configAuthTokenCmd
+}
+
+func configMachineNameCmd() *cobra.Command {
+	configMachineNameCmd := &cobra.Command{
+		Use:   "machine-name [name]",
+		Short: "Set the machine name",
+		Args:  cobra.ExactArgs(1),
+		PreRun: func(cmd *cobra.Command, args []string) {
+			config.SetLogging()
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			err := doConfigInstruction("machine-name", args)
+			if err != nil {
+				fmt.Println("Failed to set machine name:", err)
+				os.Exit(1)
+			}
+			log.Trace("Machine name set successfully.")
+		},
+	}
+
+	return configMachineNameCmd
 }

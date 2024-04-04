@@ -3,6 +3,7 @@ package agent
 import (
 	"time"
 
+	"github.com/equals215/deepsentinel/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,6 +19,13 @@ func work() {
 			return
 		}
 		stop.Unlock()
+		if config.Client.ServerAddress == "" || config.Client.AuthToken == "" || config.Client.MachineName == "" {
+			log.Error("missing mandatory configuration, please run deepsentinel config server-address, auth-token, and machine-name")
+			stop.Lock()
+			stop.val = true
+			stop.Unlock()
+			return
+		}
 		err := reportAlive()
 		if err != nil {
 			log.Errorf("error reporting alive: %v", err)

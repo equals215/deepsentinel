@@ -34,7 +34,6 @@ func Cmd(rootCmd *cobra.Command) {
 			if err != nil {
 				log.Fatalf("failed to start IPC socket server: %s", err.Error())
 			}
-			defer sock.Close()
 
 			go socketIPCHandler(sock)
 

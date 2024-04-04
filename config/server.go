@@ -95,6 +95,7 @@ func newServerConfig(verbose bool) *ServerConfig {
 	config.ListeningAddress = "localhost"
 	config.Port = 5000
 	config.AuthToken = utils.RandStringBytesMaskImprSrcUnsafe(32)
+	fmt.Printf("Auth token: %s\nSave it, you will need it to register agents\n", config.AuthToken)
 	config.ProbeInactivityDelaySeconds = 5
 	config.DegradedToFailedThreshold = 10
 	config.FailedToAlertedLowThreshold = 10
