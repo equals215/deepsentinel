@@ -9,7 +9,7 @@ import (
 	"time"
 
 	pagerdutysdk "github.com/PagerDuty/go-pagerduty"
-	"github.com/equals215/deepsentinel/config"
+	"github.com/equals215/deepsentinel/config/v1"
 	"github.com/equals215/deepsentinel/utils"
 	log "github.com/sirupsen/logrus"
 )

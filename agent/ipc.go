@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/equals215/deepsentinel/config"
+	"github.com/equals215/deepsentinel/config/v1"
 	log "github.com/sirupsen/logrus"
 )
 
