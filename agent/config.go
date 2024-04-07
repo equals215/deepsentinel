@@ -8,7 +8,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/equals215/deepsentinel/config"
+	"github.com/equals215/deepsentinel/config/v1"
 	"github.com/kristinjeanna/redact/middle"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
