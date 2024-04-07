@@ -18,12 +18,13 @@ func SetLogging() {
 		loggingLevel = Agent.LoggingLevel
 	} else if os.Getenv("LOG_LEVEL") != "" {
 		loggingLevel = os.Getenv("LOG_LEVEL")
+	} else {
+		loggingLevel = "info"
 	}
 
 	logLevel, err := log.ParseLevel(loggingLevel)
 	if err != nil {
-		logLevel = log.InfoLevel
-		log.Warn("invalid logging level, defaulting to Info")
+		log.Fatalf("couldn't set logging level: %s", err)
 	}
 	log.SetLevel(logLevel)
 

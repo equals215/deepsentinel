@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/equals215/deepsentinel/config"
+	"github.com/kristinjeanna/redact/middle"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -109,9 +110,18 @@ func configAuthTokenCmd() *cobra.Command {
 			config.SetLogging()
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			err := doConfigInstruction("auth-token", args)
+			redactor, err := middle.NewFromOptions(middle.WithReplacementText("..."))
 			if err != nil {
-				fmt.Println("Failed to set server address:", err)
+				log.Fatalf("an error occurred while creating redactor: %s", err)
+			}
+			redactedToken, err := redactor.Redact(args[0])
+			if err != nil {
+				log.Fatalf("an error occurred while redacting: %s", err)
+			}
+			fmt.Println("Set auth token to", redactedToken)
+			err = doConfigInstruction("auth-token", args)
+			if err != nil {
+				fmt.Println("Failed to set auth token:", err)
 				os.Exit(1)
 			}
 			log.Trace("Auth token set successfully.")
@@ -130,6 +140,7 @@ func configMachineNameCmd() *cobra.Command {
 			config.SetLogging()
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("Set machine name to", args[0])
 			err := doConfigInstruction("machine-name", args)
 			if err != nil {
 				fmt.Println("Failed to set machine name:", err)
