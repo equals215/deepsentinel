@@ -14,9 +14,9 @@ import (
 )
 
 var instructionMap = map[string]func(...any) error{
-	"server-address": config.ClientSetServerAddress,
-	"auth-token":     config.ClientSetAuthToken,
-	"machine-name":   config.ClientSetMachineName,
+	"server-address": config.AgentSetServerAddress,
+	"auth-token":     config.AgentSetAuthToken,
+	"machine-name":   config.AgentSetMachineName,
 }
 
 func doConfigInstruction(instruction string, args []string) error {
@@ -37,7 +37,7 @@ func doConfigInstruction(instruction string, args []string) error {
 		}
 		return fmt.Errorf("failed to start IPC client: %s", err)
 	}
-	log.Trace("IPC Client started.")
+	log.Trace("IPC Agent started.")
 
 	resp, err := sendMessageToDaemon(message)
 	if err != nil {

@@ -56,7 +56,7 @@ func socketIPCHandler(sock *net.UnixListener) {
 			continue
 		}
 
-		log.Debug("New client connected.")
+		log.Debug("New agent connected.")
 		handleRequest(conn)
 	}
 }
@@ -88,9 +88,9 @@ func handleRequest(conn net.Conn) {
 			log.Errorf("Error processing request: %s", err.Error())
 			return
 		}
-		config.RefreshClientConfig()
+		config.RefreshAgentConfig()
 		refresh := true
-		config.PrintClientConfig(refresh)
+		config.PrintAgentConfig(refresh)
 		conn.Write([]byte(resp))
 	}
 }

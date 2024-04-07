@@ -15,10 +15,10 @@ func reportPanic() {}
 func reportWatcherDied() {}
 
 func reportUnregisterAgent() error {
-	if config.Client.MachineName == "" {
+	if config.Agent.MachineName == "" {
 		return fmt.Errorf("machine name not set")
 	}
-	rawURL := fmt.Sprintf("%s/probe/%s", config.Client.ServerAddress, config.Client.MachineName)
+	rawURL := fmt.Sprintf("%s/probe/%s", config.Agent.ServerAddress, config.Agent.MachineName)
 	// Parse the server address URL
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
@@ -32,7 +32,7 @@ func reportUnregisterAgent() error {
 	}
 
 	// Add Authorization header
-	req.Header.Set("Authorization", config.Client.AuthToken)
+	req.Header.Set("Authorization", config.Agent.AuthToken)
 
 	// Send the request
 	client := &http.Client{}
@@ -51,10 +51,10 @@ func reportUnregisterAgent() error {
 }
 
 func reportAlive() error {
-	if config.Client.MachineName == "" {
+	if config.Agent.MachineName == "" {
 		return fmt.Errorf("machine name not set")
 	}
-	rawURL := fmt.Sprintf("%s/probe/%s/report", config.Client.ServerAddress, config.Client.MachineName)
+	rawURL := fmt.Sprintf("%s/probe/%s/report", config.Agent.ServerAddress, config.Agent.MachineName)
 	// Parse the server address URL
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
@@ -68,7 +68,7 @@ func reportAlive() error {
 	}
 
 	// Add Authorization header
-	req.Header.Set("Authorization", config.Client.AuthToken)
+	req.Header.Set("Authorization", config.Agent.AuthToken)
 
 	// Add JSON body
 	body := []byte(`{"machineStatus":"pass"}`)

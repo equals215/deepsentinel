@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// UnregisterCmd provides unregister cli command
 func UnregisterCmd(rootCmd *cobra.Command) {
 	unregisterCmd := &cobra.Command{
 		Use:   "unregister",

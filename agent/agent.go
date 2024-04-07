@@ -1,3 +1,4 @@
+// Package agent defines agent functionnality
 package agent
 
 import (
@@ -19,7 +20,7 @@ func work() {
 			return
 		}
 		stop.Unlock()
-		if config.Client.ServerAddress == "" || config.Client.AuthToken == "" || config.Client.MachineName == "" {
+		if config.Agent.ServerAddress == "" || config.Agent.AuthToken == "" || config.Agent.MachineName == "" {
 			log.Error("missing mandatory configuration, please run deepsentinel config server-address, auth-token, and machine-name")
 			stop.Lock()
 			stop.val = true

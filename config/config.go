@@ -14,8 +14,8 @@ func SetLogging() {
 
 	if Server != nil {
 		loggingLevel = Server.LoggingLevel
-	} else if Client != nil {
-		loggingLevel = Client.LoggingLevel
+	} else if Agent != nil {
+		loggingLevel = Agent.LoggingLevel
 	} else if os.Getenv("LOG_LEVEL") != "" {
 		loggingLevel = os.Getenv("LOG_LEVEL")
 	}

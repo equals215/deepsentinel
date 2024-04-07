@@ -13,7 +13,7 @@ func Cmd(rootCmd *cobra.Command) {
 		Use:   "run",
 		Short: "Run the agent",
 		Run: func(cmd *cobra.Command, args []string) {
-			config.InitClient()
+			config.InitAgent()
 			err := panicwatch.Start(panicwatch.Config{
 				OnPanic: func(p panicwatch.Panic) {
 					reportPanic()
@@ -28,7 +28,7 @@ func Cmd(rootCmd *cobra.Command) {
 			}
 			log.Info("Panicwatch started")
 			log.Info("————————————")
-			config.PrintClientConfig()
+			config.PrintAgentConfig()
 
 			sock, err := startSocketServer()
 			if err != nil {
