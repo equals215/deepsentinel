@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/equals215/deepsentinel/utils"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -15,7 +17,7 @@ var Server *ServerConfig
 type ServerConfig struct {
 	ListeningAddress                 string `mapstructure:"address"`
 	Port                             int    `mapstructure:"port"`
-	AuthToken                        string
+	AuthToken                        string `mapstructure:"auth-token"`
 	ProbeInactivityDelay             string `mapstructure:"probe-inactivity-delay"`
 	DegradedToFailedThreshold        int    `mapstructure:"degraded-to-failed"`
 	FailedToAlertedLowThreshold      int    `mapstructure:"failed-to-alertLow"`
@@ -48,25 +50,32 @@ func craftAlertProviderConfig(a AlertProviderType) (AlertProviderConfig, error) 
 // CraftServerConfig parse file>env>flag for server configuration then loads it into Server variable
 // Flags defaults set defaults for the server configuration
 func CraftServerConfig() error {
+	viper.SetDefault("auth-token", "changeme")
+
 	viper.SetConfigName("server-config")
 	viper.SetConfigType("json")
 	viper.AddConfigPath("/etc/deepsentinel/")
 	viper.AddConfigPath("$HOME/.deepsentinel")
 	viper.AddConfigPath(".")
-	err := viper.ReadInConfig()
-	if err != nil {
-		return err
-	}
+	viper.ReadInConfig()
 
 	viper.SetEnvPrefix("DEEPSENTINEL")
 	replacer := strings.NewReplacer("-", "_", ".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
+
+	if viper.Get("auth-token").(string) == "changeme" {
+		fmt.Println("Generating auth token")
+		viper.Set("auth-token", utils.RandStringBytesMaskImprSrcUnsafe(32))
+		fmt.Printf("[WILL ONLY BE OUTPUT ONCE] Auth token: %s\n", viper.Get("auth-token"))
+	}
+
 	viper.Unmarshal(&Server)
 
 	alertProvidersType := map[string]string{"low": viper.Get("low-alert-provider").(string), "high": viper.Get("high-alert-provider").(string)}
 	alertProviders := map[string]AlertProviderConfig{"low": nil, "high": nil}
 	for k, v := range alertProvidersType {
+		var err error
 		switch v {
 		case "pagerduty":
 			alertProviders[k], err = craftAlertProviderConfig(pagerDuty)
@@ -79,7 +88,7 @@ func CraftServerConfig() error {
 				return err
 			}
 		case "":
-			alertProviders[k] = nil
+			alertProviders[k] = &EmptyProvider{}
 		default:
 			return fmt.Errorf("'%s' is an unknown alert provider", v)
 		}
@@ -87,5 +96,22 @@ func CraftServerConfig() error {
 	Server.LowAlertProvider = alertProviders["low"]
 	Server.HighAlertProvider = alertProviders["high"]
 
+	err := viper.SafeWriteConfig()
+	if strings.Contains(err.Error(), "Already Exists") {
+		err := viper.WriteConfig()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// PrintServerConfig prints the server configuration
+func PrintServerConfig() {
+	log.Info("deepSentinel API server starting...")
+	log.Infof("Serving on %s:%d", Server.ListeningAddress, Server.Port)
+	log.Infof("Probe inactivity delay: %s", Server.ProbeInactivityDelay)
+	log.Infof("Degraded to failed threshold: %d", Server.DegradedToFailedThreshold)
+	log.Infof("Failed to alerted low threshold: %d", Server.FailedToAlertedLowThreshold)
+	log.Infof("Alerted low to alerted high threshold: %d", Server.AlertedLowToAlertedHighThreshold)
 }
