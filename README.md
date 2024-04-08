@@ -43,6 +43,8 @@ DeepSentinel is thought and coded to fit very niche use-cases where a reliabilit
 ## How To Use
 > TBD
 
+> Config prevalence order: Flags > ENV > File
+
 ## Download
 > TBD
 
