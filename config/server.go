@@ -6,7 +6,6 @@ import (
 
 	"github.com/equals215/deepsentinel/utils"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -25,11 +24,6 @@ type ServerConfig struct {
 	LoggingLevel                     string `mapstructure:"logging-level"`
 	LowAlertProvider                 AlertProviderConfig
 	HighAlertProvider                AlertProviderConfig
-}
-
-// ServerBindFlags binds the server configuration flags to viper flagset
-func ServerBindFlags(flagSet *pflag.FlagSet) {
-	viper.BindPFlags(flagSet)
 }
 
 func craftAlertProviderConfig(a AlertProviderType) (AlertProviderConfig, error) {
@@ -96,8 +90,10 @@ func CraftServerConfig() error {
 	Server.LowAlertProvider = alertProviders["low"]
 	Server.HighAlertProvider = alertProviders["high"]
 
+	SetLogging()
+
 	err := viper.SafeWriteConfig()
-	if strings.Contains(err.Error(), "Already Exists") {
+	if err != nil && strings.Contains(err.Error(), "Already Exists") {
 		err := viper.WriteConfig()
 		if err != nil {
 			return err

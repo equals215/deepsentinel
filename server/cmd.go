@@ -64,7 +64,7 @@ func Cmd(rootCmd *cobra.Command) {
 	serverCmd.Flags().String("pagerduty.integration-key", "", "PagerDuty integration key\nEnvironment variable: DEEPSENTINEL_PAGERDUTY_INTEGRATION_KEY\n\b")
 	serverCmd.Flags().String("pagerduty.integration-url", "", "PagerDuty integration URL\nEnvironment variable: DEEPSENTINEL_PAGERDUTY_INTEGRATION_URL\n\b")
 
-	config.ServerBindFlags(serverCmd.Flags())
+	config.BindFlags(serverCmd.Flags())
 
 	rootCmd.AddCommand(serverCmd)
 }

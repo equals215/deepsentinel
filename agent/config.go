@@ -8,7 +8,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/equals215/deepsentinel/config/v1"
+	"github.com/equals215/deepsentinel/config"
 	"github.com/kristinjeanna/redact/middle"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -61,6 +61,8 @@ func ConfigCmd(rootCmd *cobra.Command) {
 			}
 		},
 	}
+	configCmd.PersistentFlags().StringVarP(&loggingLevel, "logging-level", "", "info", "Logging level\nEnvironment variable: DEEPSENTINEL_LOGGING_LEVEL\n\b")
+	config.BindFlags(configCmd.PersistentFlags())
 
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configServerAddressCmd())
@@ -73,9 +75,6 @@ func configServerAddressCmd() *cobra.Command {
 		Use:   "server-address [address]",
 		Short: "Set the server address",
 		Args:  cobra.ExactArgs(1),
-		PreRun: func(cmd *cobra.Command, args []string) {
-			config.SetLogging()
-		},
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Set server address to", args[0])
 			url, err := url.Parse(args[0])
@@ -106,9 +105,6 @@ func configAuthTokenCmd() *cobra.Command {
 		Use:   "auth-token [token]",
 		Short: "Set the authentication token",
 		Args:  cobra.ExactArgs(1),
-		PreRun: func(cmd *cobra.Command, args []string) {
-			config.SetLogging()
-		},
 		Run: func(cmd *cobra.Command, args []string) {
 			redactor, err := middle.NewFromOptions(middle.WithReplacementText("..."))
 			if err != nil {
@@ -136,9 +132,6 @@ func configMachineNameCmd() *cobra.Command {
 		Use:   "machine-name [name]",
 		Short: "Set the machine name",
 		Args:  cobra.ExactArgs(1),
-		PreRun: func(cmd *cobra.Command, args []string) {
-			config.SetLogging()
-		},
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Set machine name to", args[0])
 			err := doConfigInstruction("machine-name", args)
