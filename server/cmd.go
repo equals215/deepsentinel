@@ -4,8 +4,7 @@ import (
 	"fmt"
 
 	"github.com/equals215/deepsentinel/alerting"
-	"github.com/equals215/deepsentinel/config/v1"
-	configv2 "github.com/equals215/deepsentinel/config/v2"
+	"github.com/equals215/deepsentinel/config"
 	"github.com/equals215/deepsentinel/monitoring"
 	"github.com/grongor/panicwatch"
 	log "github.com/sirupsen/logrus"
@@ -20,9 +19,21 @@ func Cmd(rootCmd *cobra.Command) {
 		Use:   "run",
 		Short: "Run the API server",
 		PreRun: func(cmd *cobra.Command, args []string) {
-			config.InitServerForPanicWatcher()
-			alerting.InitForPanicWatcher(config.Server, noAlerting)
+			err := config.CraftServerConfig()
+			if err != nil {
+				log.Fatalf("failed to craft server config: %s", err.Error())
+			}
+			alerting.Init(config.Server, noAlerting)
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Infof("————————————")
 
+			config.PrintServerConfig()
+			payloadChannel := make(chan *monitoring.Payload, 1)
+			go monitoring.Handle(payloadChannel)
+
+			addr := fmt.Sprintf("%s:%d", config.Server.ListeningAddress, config.Server.Port)
+			newServer(payloadChannel).Listen(addr)
 			//Start panicwatch to catch panics
 			err := panicwatch.Start(panicwatch.Config{
 				OnPanic: func(p panicwatch.Panic) {
@@ -37,23 +48,6 @@ func Cmd(rootCmd *cobra.Command) {
 				log.Fatalf("failed to start panicwatch: %s", err.Error())
 			}
 			log.Info("Panicwatch started")
-		},
-		Run: func(cmd *cobra.Command, args []string) {
-			config.InitServer()
-			alerting.Init(config.Server, noAlerting)
-			err := configv2.CraftServerConfig()
-			if err != nil {
-				log.Fatalf("failed to craft server config: %s", err.Error())
-			}
-
-			log.Infof("————————————")
-
-			config.PrintServerConfig()
-			payloadChannel := make(chan *monitoring.Payload, 1)
-			go monitoring.Handle(payloadChannel)
-
-			addr := fmt.Sprintf("%s:%d", config.Server.ListeningAddress, config.Server.Port)
-			newServer(payloadChannel).Listen(addr)
 		},
 	}
 	serverCmd.Flags().BoolVarP(&noAlerting, "no-alert", "", false, "Disable alerting")
@@ -70,7 +64,7 @@ func Cmd(rootCmd *cobra.Command) {
 	serverCmd.Flags().String("pagerduty.integration-key", "", "PagerDuty integration key\nEnvironment variable: DEEPSENTINEL_PAGERDUTY_INTEGRATION_KEY\n\b")
 	serverCmd.Flags().String("pagerduty.integration-url", "", "PagerDuty integration URL\nEnvironment variable: DEEPSENTINEL_PAGERDUTY_INTEGRATION_URL\n\b")
 
-	configv2.ServerBindFlags(serverCmd.Flags())
+	config.ServerBindFlags(serverCmd.Flags())
 
 	rootCmd.AddCommand(serverCmd)
 }

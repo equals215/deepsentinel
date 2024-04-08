@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/equals215/deepsentinel/config/v1"
+	"github.com/equals215/deepsentinel/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 )

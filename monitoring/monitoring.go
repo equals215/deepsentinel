@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/equals215/deepsentinel/alerting"
-	"github.com/equals215/deepsentinel/config/v1"
+	"github.com/equals215/deepsentinel/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -99,7 +99,10 @@ func Handle(channel chan *Payload) {
 }
 
 func (p *probeObject) work() {
-	inactivityDelay := time.Duration(config.Server.ProbeInactivityDelaySeconds) * time.Second
+	inactivityDelay, err := time.ParseDuration(config.Server.ProbeInactivityDelay)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to parse inactivity delay")
+	}
 	timer := time.NewTimer(inactivityDelay)
 	for {
 		select {

@@ -2,10 +2,9 @@ package alerting
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/equals215/deepsentinel/alerting/providers/pagerduty"
-	"github.com/equals215/deepsentinel/config/v1"
+	"github.com/equals215/deepsentinel/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,22 +21,22 @@ type AlertProvider interface {
 var Config AlertingConfig
 
 func Init(config *config.ServerConfig, noAlerting bool) {
-	_init(config, true, noAlerting)
+	_init(config, noAlerting)
 }
 
-func InitForPanicWatcher(serverConfig *config.ServerConfig, noAlerting bool) {
-	log.SetOutput(io.Discard)
+// func InitForPanicWatcher(serverConfig *config.ServerConfig, noAlerting bool) {
+// 	log.SetOutput(io.Discard)
 
-	_init(serverConfig, false, noAlerting)
+// 	_init(serverConfig, false, noAlerting)
 
-	config.SetLogging()
-}
+// 	config.SetLogging()
+// }
 
-func _init(serverConfig *config.ServerConfig, verbose bool, noAlerting bool) {
+func _init(serverConfig *config.ServerConfig, noAlerting bool) {
 	var err error
 
-	if serverConfig.LowAlertProvider != nil {
-		providerConfig := serverConfig.LowAlertProvider.GetProvider()
+	if serverConfig.LowAlertProvider.Type() != config.EmptyProviderType {
+		providerConfig := serverConfig.LowAlertProvider
 		Config.lowAlertProvider, err = craftProvider(providerConfig)
 		if err != nil {
 			log.Fatal("Failed to craft low alert provider")
@@ -47,8 +46,8 @@ func _init(serverConfig *config.ServerConfig, verbose bool, noAlerting bool) {
 		log.Warn("Low alert provider is not configured")
 	}
 
-	if serverConfig.HighAlertProvider != nil {
-		providerConfig := serverConfig.HighAlertProvider.GetProvider()
+	if serverConfig.HighAlertProvider.Type() != config.EmptyProviderType {
+		providerConfig := serverConfig.HighAlertProvider
 		Config.highAlertProvider, err = craftProvider(providerConfig)
 	} else {
 		Config.highAlertProvider = nil

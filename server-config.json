@@ -1,0 +1,18 @@
+{
+  "address": "127.0.0.1",
+  "alertlow-to-alerthigh": "10",
+  "auth-token": "zYQTdJyKbXcYIkPTSctcVtuLkbjapCaL",
+  "degraded-to-failed": 10,
+  "failed-to-alertlow": 20,
+  "high-alert-provider": "pagerduty",
+  "logging-level": "info",
+  "low-alert-provider": "",
+  "no-alert": false,
+  "pagerduty": {
+    "api-key": "u+o5sSLNGvB26cVEAjEQ",
+    "integration-key": "cff1a103040b480cc0ccd123f66f5578",
+    "integration-url": "https://events.pagerduty.com/v2/enqueue"
+  },
+  "port": "5050",
+  "probe-inactivity-delay": "2s"
+}
