@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/equals215/deepsentinel/config/v1"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -88,9 +87,6 @@ func handleRequest(conn net.Conn) {
 			log.Errorf("Error processing request: %s", err.Error())
 			return
 		}
-		config.RefreshAgentConfig()
-		refresh := true
-		config.PrintAgentConfig(refresh)
 		conn.Write([]byte(resp))
 	}
 }

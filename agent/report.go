@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/equals215/deepsentinel/config/v1"
+	"github.com/equals215/deepsentinel/config"
 )
 
 func reportPanic() {}
