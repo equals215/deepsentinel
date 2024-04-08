@@ -15,6 +15,9 @@ func reportPanic() {}
 func reportWatcherDied() {}
 
 func reportUnregisterAgent() error {
+	config.Agent.Lock()
+	defer config.Agent.Unlock()
+
 	if config.Agent.MachineName == "" {
 		return fmt.Errorf("machine name not set")
 	}
@@ -51,6 +54,9 @@ func reportUnregisterAgent() error {
 }
 
 func reportAlive() error {
+	config.Agent.Lock()
+	defer config.Agent.Unlock()
+
 	if config.Agent.MachineName == "" {
 		return fmt.Errorf("machine name not set")
 	}
