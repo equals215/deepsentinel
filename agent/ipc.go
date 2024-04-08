@@ -107,6 +107,7 @@ func processRequest(message string) (string, error) {
 		for i, arg := range args {
 			argInterfaces[i] = arg
 		}
+		reportUnregisterAgent()
 		err := handler(argInterfaces...)
 		if err != nil {
 			return "", err
