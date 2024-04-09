@@ -82,6 +82,7 @@ func handleRequest(conn net.Conn) {
 		stop.Unlock()
 		conn.Write([]byte("ok"))
 	} else {
+		reportUnregisterAgent()
 		resp, err := processRequest(recvMessage)
 		if err != nil {
 			log.Errorf("Error processing request: %s", err.Error())
@@ -107,7 +108,6 @@ func processRequest(message string) (string, error) {
 		for i, arg := range args {
 			argInterfaces[i] = arg
 		}
-		reportUnregisterAgent()
 		err := handler(argInterfaces...)
 		if err != nil {
 			return "", err
