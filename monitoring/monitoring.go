@@ -50,20 +50,26 @@ type probeObject struct {
 	timeSerieMutex sync.Mutex
 }
 
+type probeList struct {
+	sync.Mutex
+	p map[string]*probeObject
+}
+
+var probes *probeList
+
 // Handle function handles the payload from the API server
 func Handle(channel chan *Payload) {
 	log.Debug("Starting monitoring.Handle")
-	var probes struct {
-		sync.Mutex
-		p map[string]*probeObject
+	probes = &probeList{
+		p: make(map[string]*probeObject),
 	}
-	probes.p = make(map[string]*probeObject)
 	for {
 		select {
 		case receivedPayload := <-channel:
 			probes.Lock()
 			if probe, ok := probes.p[receivedPayload.Machine]; ok {
 				if receivedPayload.MachineStatus == "delete" {
+					// Delete the probe
 					log.WithFields(log.Fields{
 						"probe":   probe.name,
 						"machine": receivedPayload.Machine,
@@ -72,16 +78,29 @@ func Handle(channel chan *Payload) {
 					close(probe.data)
 					close(probe.stop)
 					delete(probes.p, receivedPayload.Machine)
-				} else {
-					probe.data <- receivedPayload
+					probes.Unlock()
+					continue
 				}
+				// Send the payload to the probe
+				probe.data <- receivedPayload
+				probes.Unlock()
+				continue
 			} else {
+				// Create a new probe
 				probe := &probeObject{
-					name:    receivedPayload.Machine,
-					data:    make(chan *Payload),
-					stop:    make(chan bool),
-					status:  normal,
-					counter: 0,
+					name:       receivedPayload.Machine,
+					data:       make(chan *Payload),
+					stop:       make(chan bool),
+					status:     normal,
+					counter:    0,
+					lastNormal: time.Now(),
+					timeSerieHead: &timeSerieNode{
+						timestamp: receivedPayload.Timestamp,
+						services:  make(map[string]*serviceStatus),
+						previous:  nil,
+					},
+					timeSerieSize:  1,
+					timeSerieMutex: sync.Mutex{},
 				}
 
 				probes.p[receivedPayload.Machine] = probe
@@ -92,8 +111,9 @@ func Handle(channel chan *Payload) {
 				}).Info("Starting probe thread")
 				go probe.work()
 				probe.data <- receivedPayload
+				probes.Unlock()
+				continue
 			}
-			probes.Unlock()
 		}
 	}
 }
