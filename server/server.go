@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/equals215/deepsentinel/monitoring"
@@ -9,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 )
 
-func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
+func newServer(payloadChannel chan monitoring.Payload) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "DeepSentinel API",
 	})
@@ -45,7 +46,7 @@ func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 		}
 
 		parsedPayload := &monitoring.Payload{}
-		err := json.Unmarshal(c.Body(), &parsedPayload)
+		err := json.Unmarshal(c.Body(), parsedPayload)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"status":  "fail",
@@ -55,9 +56,9 @@ func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 		}
 
 		parsedPayload.Timestamp = time.Now()
-		parsedPayload.Machine = machine
+		parsedPayload.Machine = strings.TrimSpace(machine)
 
-		payloadChannel <- parsedPayload
+		payloadChannel <- *parsedPayload
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
@@ -72,13 +73,13 @@ func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 			})
 		}
 
-		payload := &monitoring.Payload{
-			Machine:       machine,
+		parsedPayload := &monitoring.Payload{
+			Machine:       strings.TrimSpace(machine),
 			MachineStatus: "delete",
 			Timestamp:     time.Now(),
 		}
 
-		payloadChannel <- payload
+		payloadChannel <- *parsedPayload
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 

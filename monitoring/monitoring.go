@@ -1,9 +1,12 @@
 package monitoring
 
 import (
+	"encoding/base64"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/equals215/deepsentinel/alerting"
 	"github.com/equals215/deepsentinel/config"
 	log "github.com/sirupsen/logrus"
@@ -52,50 +55,95 @@ type probeObject struct {
 
 type probeList struct {
 	sync.Mutex
-	p map[string]*probeObject
+	p           map[string]*probeObject
+	probesNames *[]string
 }
 
-var probes *probeList
+func CreateProbeList() *probeList {
+	probesNames := make([]string, 0)
+	return &probeList{
+		p:           make(map[string]*probeObject),
+		probesNames: &probesNames,
+	}
+}
 
 // Handle function handles the payload from the API server
-func Handle(channel chan *Payload) {
+func (probes *probeList) Handle(channel chan Payload) {
 	log.Debug("Starting monitoring.Handle")
-	probes = &probeList{
-		p: make(map[string]*probeObject),
-	}
+	// if probes != nil {
+	// 	log.Fatal("probes already initialized, this should never happen, please open an issue https://github.com/equals215/deepsentinel/issues/new")
+	// }
 	for {
 		select {
 		case receivedPayload := <-channel:
 			probes.Lock()
-			if probe, ok := probes.p[receivedPayload.Machine]; ok {
-				if receivedPayload.MachineStatus == "delete" {
+			log.Infof("probesNames: %v\n", probes.probesNames)
+			spew.Dump(probes)
+			payload := &receivedPayload
+			spew.Dump(payload)
+			// ONLY FOR TESTING SHOULD BE DELETED
+			// ONLY FOR TESTING SHOULD BE DELETED
+			if len(probes.p) > 2 {
+				log.WithFields(log.Fields{
+					"probes": probes.p,
+				}).Info("Probes")
+				spew.Dump(probes)
+				for _, probeName := range *probes.probesNames {
+					log.WithFields(log.Fields{
+						"probe": probeName,
+						"hexa":  fmt.Sprintf("%x", probeName),
+						"b64":   base64.StdEncoding.EncodeToString([]byte(probeName)),
+					}).Info("Probes")
+				}
+				log.Fatalf("Too many probes: %d", len(probes.p))
+			}
+			// ONLY FOR TESTING SHOULD BE DELETED
+			// ONLY FOR TESTING SHOULD BE DELETED
+			if probe, ok := probes.p[payload.Machine]; ok {
+				if payload.MachineStatus == "delete" {
 					// Delete the probe
 					log.WithFields(log.Fields{
 						"probe":   probe.name,
-						"machine": receivedPayload.Machine,
+						"machine": payload.Machine,
 					}).Info("Deleting probe")
 					probe.stop <- true
 					close(probe.data)
 					close(probe.stop)
-					delete(probes.p, receivedPayload.Machine)
+					delete(probes.p, payload.Machine)
 					probes.Unlock()
+					log.Info("—————————————————————————————————————————————————————————————————————")
 					continue
 				}
 				// Send the payload to the probe
-				probe.data <- receivedPayload
+				// probe.data <- payload
 				probes.Unlock()
+				log.Info("—————————————————————————————————————————————————————————————————————")
 				continue
 			} else {
+				// ONLY FOR TESTING SHOULD BE DELETED
+				// ONLY FOR TESTING SHOULD BE DELETED
+				for _, probeName := range *probes.probesNames {
+					log.Infof("payload.machine=%s, probeName=%s\n", payload.Machine, probeName)
+					if payload.Machine == probeName {
+						log.WithFields(log.Fields{
+							"gotMachine":      payload.Machine,
+							"existingMachine": probeName,
+						}).Fatalf("Probes")
+					}
+				}
+				spew.Dump(payload)
+				// ONLY FOR TESTING SHOULD BE DELETED
+				// ONLY FOR TESTING SHOULD BE DELETED
 				// Create a new probe
 				probe := &probeObject{
-					name:       receivedPayload.Machine,
-					data:       make(chan *Payload),
+					name:       payload.Machine,
+					data:       make(chan *Payload, 1),
 					stop:       make(chan bool),
 					status:     normal,
 					counter:    0,
 					lastNormal: time.Now(),
 					timeSerieHead: &timeSerieNode{
-						timestamp: receivedPayload.Timestamp,
+						timestamp: payload.Timestamp,
 						services:  make(map[string]*serviceStatus),
 						previous:  nil,
 					},
@@ -103,15 +151,18 @@ func Handle(channel chan *Payload) {
 					timeSerieMutex: sync.Mutex{},
 				}
 
-				probes.p[receivedPayload.Machine] = probe
+				probes.p[payload.Machine] = probe
+				newProbesNames := append(*probes.probesNames, payload.Machine)
+				probes.probesNames = &newProbesNames
 				log.WithFields(log.Fields{
 					"probe":   probe.name,
-					"machine": receivedPayload.Machine,
+					"machine": payload.Machine,
 					"status":  probe.status,
 				}).Info("Starting probe thread")
 				go probe.work()
-				probe.data <- receivedPayload
+				// probe.data <- payload
 				probes.Unlock()
+				log.Info("—————————————————————————————————————————————————————————————————————")
 				continue
 			}
 		}

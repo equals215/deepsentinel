@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/equals215/deepsentinel/alerting"
@@ -41,6 +42,12 @@ type timeSerieNode struct {
 	timestamp time.Time
 	services  map[string]*serviceStatus
 	previous  *timeSerieNode
+}
+
+type probeTimeSerie struct {
+	sync.Mutex
+	head *timeSerieNode
+	size int
 }
 
 func (p *probeObject) workServices(payload *Payload) {

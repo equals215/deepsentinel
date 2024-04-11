@@ -6,7 +6,6 @@ import (
 	"github.com/equals215/deepsentinel/alerting"
 	"github.com/equals215/deepsentinel/config"
 	"github.com/equals215/deepsentinel/monitoring"
-	"github.com/grongor/panicwatch"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -29,25 +28,26 @@ func Cmd(rootCmd *cobra.Command) {
 			log.Infof("————————————")
 
 			config.PrintServerConfig()
-			payloadChannel := make(chan *monitoring.Payload, 1)
-			go monitoring.Handle(payloadChannel)
+			payloadChannel := make(chan monitoring.Payload)
+			probes := monitoring.CreateProbeList()
+			go probes.Handle(payloadChannel)
 
 			addr := fmt.Sprintf("%s:%d", config.Server.ListeningAddress, config.Server.Port)
 			newServer(payloadChannel).Listen(addr)
 			//Start panicwatch to catch panics
-			err := panicwatch.Start(panicwatch.Config{
-				OnPanic: func(p panicwatch.Panic) {
-					alerting.ServerAlert("deepsentinel", "server", "panic")
-				},
-				OnWatcherDied: func(err error) {
-					log.Error("panic watcher process died")
-					alerting.ServerAlert("deepsentinel", "panicwatcher", "low")
-				},
-			})
-			if err != nil {
-				log.Fatalf("failed to start panicwatch: %s", err.Error())
-			}
-			log.Info("Panicwatch started")
+			// err := panicwatch.Start(panicwatch.Config{
+			// 	OnPanic: func(p panicwatch.Panic) {
+			// 		alerting.ServerAlert("deepsentinel", "server", "panic")
+			// 	},
+			// 	OnWatcherDied: func(err error) {
+			// 		log.Error("panic watcher process died")
+			// 		alerting.ServerAlert("deepsentinel", "panicwatcher", "low")
+			// 	},
+			// })
+			// if err != nil {
+			// 	log.Fatalf("failed to start panicwatch: %s", err.Error())
+			// }
+			// log.Info("Panicwatch started")
 		},
 	}
 	serverCmd.Flags().BoolVarP(&noAlerting, "no-alert", "", false, "Disable alerting")
