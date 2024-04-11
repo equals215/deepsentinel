@@ -53,11 +53,6 @@ func Daemonize(component daemonType, update bool) {
 		}
 	}
 	if !daemon.isDaemonRunning(component) {
-		if !daemon.isDaemonInstalled(component) {
-			err := daemon.installDaemon(component)
-			fmt.Printf("Installing daemon: %v\n", err)
-			os.Exit(1)
-		}
 		if component == Agent {
 			if _, err := os.Stat(agentBinaryPath); errors.Is(err, os.ErrNotExist) {
 				copyBinary(agentBinaryPath)
@@ -65,6 +60,13 @@ func Daemonize(component daemonType, update bool) {
 		} else if component == Server {
 			if _, err := os.Stat(serverBinaryPath); errors.Is(err, os.ErrNotExist) {
 				copyBinary(serverBinaryPath)
+			}
+		}
+		if !daemon.isDaemonInstalled(component) {
+			err := daemon.installDaemon(component)
+			if err != nil {
+				fmt.Printf("Failed to install daemon: %v\n", err)
+				os.Exit(1)
 			}
 		}
 

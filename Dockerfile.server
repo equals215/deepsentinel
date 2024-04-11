@@ -1,0 +1,14 @@
+
+FROM golang:1.22.2 AS builder
+
+WORKDIR /app
+COPY . /app/
+RUN CGO_ENABLED=0 go build -a -installsuffix cgo -o server ./cmd/server
+
+FROM alpine:latest as runner
+
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/server .
+
+CMD ["./server", "run"]
