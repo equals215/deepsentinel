@@ -20,7 +20,7 @@ const (
 
 var (
 	serverBinaryPath = "/etc/deepsentinel/server"
-	agentBinaryPath  = "/etc/deepsentinel/client"
+	agentBinaryPath  = "/etc/deepsentinel/agent"
 )
 
 type daemon interface {
