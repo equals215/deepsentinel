@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/equals215/deepsentinel/alerting"
@@ -43,14 +44,20 @@ type timeSerieNode struct {
 	previous  *timeSerieNode
 }
 
+type probeTimeSerie struct {
+	sync.Mutex
+	head *timeSerieNode
+	size int
+}
+
 func (p *probeObject) workServices(payload *Payload) {
-	p.timeSerieMutex.Lock()
+	p.timeSerie.Lock()
 	p.storePayload(payload)
-	if p.timeSerieSize > trimTimeSeriesThreshold {
+	if p.timeSerie.size > trimTimeSeriesThreshold {
 		go p.trimTimeSerie()
 	}
 	p.checkAlert()
-	p.timeSerieMutex.Unlock()
+	p.timeSerie.Unlock()
 }
 
 func (p *probeObject) storePayload(payload *Payload) {
@@ -69,8 +76,8 @@ func (p *probeObject) storePayload(payload *Payload) {
 			}).Error("Invalid status string in payload, defaulting to fail")
 		}
 
-		if p.timeSerieHead != nil {
-			prevServiceStatus, ok := p.timeSerieHead.services[service]
+		if p.timeSerie.head != nil {
+			prevServiceStatus, ok := p.timeSerie.head.services[service]
 			if ok && prevServiceStatus.status == parsedStatus && prevServiceStatus.status != pass {
 				tempCount = prevServiceStatus.count + 1
 			}
@@ -93,32 +100,32 @@ func (p *probeObject) storePayload(payload *Payload) {
 	newNode := &timeSerieNode{
 		timestamp: payload.Timestamp,
 		services:  tempServiceStatus,
-		previous:  p.timeSerieHead,
+		previous:  p.timeSerie.head,
 	}
 
-	p.timeSerieHead = newNode
-	p.timeSerieSize++
+	p.timeSerie.head = newNode
+	p.timeSerie.size++
 
 	log.WithFields(log.Fields{
 		"probe":   p.name,
 		"machine": payload.Machine,
 		"status":  p.status,
-		"size":    p.timeSerieSize,
+		"size":    p.timeSerie.size,
 	}).Trace("Payload stored in timeserie")
 }
 
 func (p *probeObject) trimTimeSerie() {
-	p.timeSerieMutex.Lock()
-	defer p.timeSerieMutex.Unlock()
+	p.timeSerie.Lock()
+	defer p.timeSerie.Unlock()
 
 	log.WithFields(log.Fields{
 		"probe": p.name,
-		"size":  p.timeSerieSize,
+		"size":  p.timeSerie.size,
 	}).Trace("Trimming timeserie")
 
 	count := 0
 	historicalAllPass := true
-	currentNode := p.timeSerieHead
+	currentNode := p.timeSerie.head
 	for currentNode != nil {
 		for _, service := range currentNode.services {
 			if service.status != pass {
@@ -137,53 +144,53 @@ func (p *probeObject) trimTimeSerie() {
 	}
 
 	if historicalAllPass {
-		p.timeSerieHead.previous = nil
-		p.timeSerieSize = 1
+		p.timeSerie.head.previous = nil
+		p.timeSerie.size = 1
 		log.WithFields(log.Fields{
 			"probe": p.name,
-			"size":  p.timeSerieSize,
+			"size":  p.timeSerie.size,
 		}).Trace("All historical data is pass trimmed timeserie to latest node")
 		return
 	}
 
 	if count >= trimTimeSeriesThreshold {
-		currentNode = p.timeSerieHead
+		currentNode = p.timeSerie.head
 		for i := 0; i < trimTimeSeriesThreshold-1; i++ {
 			currentNode = currentNode.previous
 		}
 		currentNode.previous = nil
-		p.timeSerieSize = trimTimeSeriesThreshold
+		p.timeSerie.size = trimTimeSeriesThreshold
 		log.WithFields(log.Fields{
 			"probe": p.name,
-			"size":  p.timeSerieSize,
+			"size":  p.timeSerie.size,
 		}).Trace("Trimmed timeserie to last 10 nodes")
 		return
 	}
 
 	if currentNode != nil {
 		currentNode.previous = nil
-		p.timeSerieSize = count
+		p.timeSerie.size = count
 		log.WithFields(log.Fields{
 			"probe": p.name,
-			"size":  p.timeSerieSize,
+			"size":  p.timeSerie.size,
 		}).Trace("Trimmed timeserie to node with first non-pass status")
 		return
 	}
 
-	p.timeSerieSize = 0
-	p.timeSerieHead = nil
+	p.timeSerie.size = 0
+	p.timeSerie.head = nil
 	log.WithFields(log.Fields{
 		"probe": p.name,
-		"size":  p.timeSerieSize,
+		"size":  p.timeSerie.size,
 	}).Error("Trimmed timeserie to empty")
 }
 
 func (p *probeObject) checkAlert() {
-	if p.timeSerieHead == nil {
+	if p.timeSerie.head == nil {
 		return
 	}
 
-	for service, status := range p.timeSerieHead.services {
+	for service, status := range p.timeSerie.head.services {
 		var alertingStatus string
 		alert := false
 

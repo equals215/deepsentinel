@@ -39,61 +39,80 @@ type Payload struct {
 }
 
 type probeObject struct {
-	name           string
-	data           chan *Payload
-	stop           chan bool
-	status         probeStatus
-	counter        int
-	lastNormal     time.Time
-	timeSerieHead  *timeSerieNode
-	timeSerieSize  int
-	timeSerieMutex sync.Mutex
+	name       string
+	data       chan *Payload
+	stop       chan bool
+	status     probeStatus
+	counter    int
+	lastNormal time.Time
+	timeSerie  *probeTimeSerie
 }
 
 // Handle function handles the payload from the API server
 func Handle(channel chan *Payload) {
 	log.Debug("Starting monitoring.Handle")
-	var probes struct {
-		sync.Mutex
-		p map[string]*probeObject
-	}
-	probes.p = make(map[string]*probeObject)
+	var probeMap sync.Map
 	for {
 		select {
-		case receivedPayload := <-channel:
-			probes.Lock()
-			if probe, ok := probes.p[receivedPayload.Machine]; ok {
-				if receivedPayload.MachineStatus == "delete" {
+		case payload := <-channel:
+			if loaded, ok := probeMap.Load(payload.Machine); ok {
+				probe := loaded.(*probeObject)
+				if payload.MachineStatus == "delete" {
+					// Delete the probe
 					log.WithFields(log.Fields{
 						"probe":   probe.name,
-						"machine": receivedPayload.Machine,
+						"machine": payload.Machine,
 					}).Info("Deleting probe")
 					probe.stop <- true
 					close(probe.data)
 					close(probe.stop)
-					delete(probes.p, receivedPayload.Machine)
+					probeMap.Delete(payload.Machine)
 				} else {
-					probe.data <- receivedPayload
+					// Send the payload to the probe
+					probe.data <- payload
 				}
 			} else {
-				probe := &probeObject{
-					name:    receivedPayload.Machine,
-					data:    make(chan *Payload),
-					stop:    make(chan bool),
-					status:  normal,
-					counter: 0,
+				// Create a new probe
+				newProbe := &probeObject{
+					name:       payload.Machine,
+					data:       make(chan *Payload, 1),
+					stop:       make(chan bool),
+					status:     normal,
+					counter:    0,
+					lastNormal: time.Now(),
+					timeSerie: &probeTimeSerie{
+						head: &timeSerieNode{
+							timestamp: payload.Timestamp,
+							services:  make(map[string]*serviceStatus),
+							previous:  nil,
+						},
+						size: 1,
+					},
 				}
 
-				probes.p[receivedPayload.Machine] = probe
+				value, loaded := probeMap.LoadOrStore(payload.Machine, newProbe)
+				if loaded {
+					log.WithFields(log.Fields{
+						"machine": payload.Machine,
+					}).Fatal("Machine already exists")
+				}
+
+				probe, ok := value.(*probeObject)
+				if !ok {
+					log.WithFields(log.Fields{
+						"machine": payload.Machine,
+					}).Fatal("Failed to load probe")
+				}
+
 				log.WithFields(log.Fields{
 					"probe":   probe.name,
-					"machine": receivedPayload.Machine,
+					"machine": payload.Machine,
 					"status":  probe.status,
 				}).Info("Starting probe thread")
+
 				go probe.work()
-				probe.data <- receivedPayload
+				probe.data <- payload
 			}
-			probes.Unlock()
 		}
 	}
 }

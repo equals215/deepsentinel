@@ -26,3 +26,5 @@ tmp/
 fly.toml
 
 .DS_Store
+
+.vscode/

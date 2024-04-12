@@ -14,6 +14,7 @@ import (
 // Cmd adds the API server command to the root command
 func Cmd(rootCmd *cobra.Command) {
 	var noAlerting bool
+	payloadChannel := make(chan *monitoring.Payload)
 
 	serverCmd := &cobra.Command{
 		Use:   "run",
@@ -29,12 +30,11 @@ func Cmd(rootCmd *cobra.Command) {
 			log.Infof("————————————")
 
 			config.PrintServerConfig()
-			payloadChannel := make(chan *monitoring.Payload, 1)
 			go monitoring.Handle(payloadChannel)
 
 			addr := fmt.Sprintf("%s:%d", config.Server.ListeningAddress, config.Server.Port)
 			newServer(payloadChannel).Listen(addr)
-			//Start panicwatch to catch panics
+			// Start panicwatch to catch panics
 			err := panicwatch.Start(panicwatch.Config{
 				OnPanic: func(p panicwatch.Panic) {
 					alerting.ServerAlert("deepsentinel", "server", "panic")
