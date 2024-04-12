@@ -8,9 +8,10 @@ import (
 	"github.com/equals215/deepsentinel/monitoring"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
+	"github.com/gofiber/fiber/v2/utils"
 )
 
-func newServer(payloadChannel chan monitoring.Payload) *fiber.App {
+func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "DeepSentinel API",
 	})
@@ -28,7 +29,7 @@ func newServer(payloadChannel chan monitoring.Payload) *fiber.App {
 	})
 
 	app.Post("/probe/:machine/report", func(c *fiber.Ctx) error {
-		machine := c.Params("machine")
+		machine := utils.CopyString(c.Params("machine"))
 
 		// This shouldn't happen, desgined to catch Fiber's bug if ever
 		if machine == "" {
@@ -58,12 +59,12 @@ func newServer(payloadChannel chan monitoring.Payload) *fiber.App {
 		parsedPayload.Timestamp = time.Now()
 		parsedPayload.Machine = strings.TrimSpace(machine)
 
-		payloadChannel <- *parsedPayload
+		payloadChannel <- parsedPayload
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
 	app.Delete("/probe/:machine", func(c *fiber.Ctx) error {
-		machine := c.Params("machine")
+		machine := utils.CopyString(c.Params("machine"))
 
 		// This shouldn't happen, desgined to catch Fiber's bug if ever
 		if machine == "" {
@@ -79,7 +80,7 @@ func newServer(payloadChannel chan monitoring.Payload) *fiber.App {
 			Timestamp:     time.Now(),
 		}
 
-		payloadChannel <- *parsedPayload
+		payloadChannel <- parsedPayload
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 

@@ -4,7 +4,6 @@ go 1.21.3
 
 require (
 	github.com/PagerDuty/go-pagerduty v1.8.0
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/gofiber/fiber/v2 v2.52.2
 	github.com/grongor/panicwatch v1.2.0
 	github.com/jxsl13/osfacts v0.4.0
