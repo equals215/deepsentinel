@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/spf13/viper"
 )
@@ -20,6 +21,13 @@ func AgentSetServerAddress(args ...any) error {
 	}
 
 	address := args[0].(string)
+	url, err := url.Parse(address)
+	if err != nil {
+		return fmt.Errorf("Invalid URL: %s", err)
+	}
+	if url.Scheme != "http" && url.Scheme != "https" {
+		return fmt.Errorf("URL scheme is required")
+	}
 
 	Agent.Lock()
 	viper.Set("server-address", address)
