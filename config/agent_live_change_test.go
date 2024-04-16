@@ -1,13 +1,23 @@
 package config
 
 import (
+	"bytes"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
 )
 
 func TestAgentSetServerAddress(t *testing.T) {
+	var logOutput bytes.Buffer
+	log.SetLevel(log.InfoLevel)
+	log.SetOutput(&logOutput)
+	log.SetFormatter(&easy.Formatter{
+		LogFormat: "%msg%",
+	})
+
 	// Test case 1: Agent is nil
 	Agent = nil
 	err := AgentSetServerAddress("http://localhost:8080")
@@ -35,6 +45,13 @@ func TestAgentSetServerAddress(t *testing.T) {
 }
 
 func TestAgentSetAuthToken(t *testing.T) {
+	var logOutput bytes.Buffer
+	log.SetLevel(log.InfoLevel)
+	log.SetOutput(&logOutput)
+	log.SetFormatter(&easy.Formatter{
+		LogFormat: "%msg%",
+	})
+
 	// Test case 1: Agent is nil
 	Agent = nil
 	err := AgentSetAuthToken("token123")
@@ -57,6 +74,13 @@ func TestAgentSetAuthToken(t *testing.T) {
 }
 
 func TestAgentSetMachineName(t *testing.T) {
+	var logOutput bytes.Buffer
+	log.SetLevel(log.InfoLevel)
+	log.SetOutput(&logOutput)
+	log.SetFormatter(&easy.Formatter{
+		LogFormat: "%msg%",
+	})
+
 	// Test case 1: Agent is nil
 	Agent = nil
 	err := AgentSetMachineName("machine1")
