@@ -14,7 +14,7 @@ env:
 
 jobs:
   tests:
-    uses: .github/workflows/go-tests-coverage.yml
+    uses: .github/workflows/go-tests-coverage.yml@latest
   build:
     needs: [tests]
     strategy:
