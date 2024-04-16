@@ -20,6 +20,19 @@ If you ever worried "What would happen if my monitoring/alerting systems fail?" 
   <a href="#credits">Credits</a> •
   <a href="#license">License</a>
 </p>
+<p align="center">
+<img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/equals215/deepsentinel/.github%2Fworkflows%2Fgo-build-and-release.yml">
+<a href="https://codecov.io/gh/equals215/deepsentinel" > 
+ <img src="https://codecov.io/gh/equals215/deepsentinel/branch/master/graph/badge.svg?token=6JKK7IP4VO"/> 
+</a>
+<a href="https://goreportcard.com/report/github.com/equals215/deepsentinel">
+  <img src="https://goreportcard.com/badge/github.com/equals215/deepsentinel" />
+</a>
+<a href="https://codeclimate.com/github/equals215/deepsentinel/maintainability">
+  <img src="https://api.codeclimate.com/v1/badges/1058b0dd522c52babff0/maintainability" />
+</a>
+<img src="https://snyk.io/test/github/equals215/deepsentinel/badge.svg" />
+</p>
 
 ## Quick description
 
