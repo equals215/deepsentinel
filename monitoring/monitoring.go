@@ -32,10 +32,10 @@ func (s probeStatus) String() string {
 
 // Payload is the structure of the payload received from the API server
 type Payload struct {
-	MachineStatus string            `json:"machineStatus"`
+	MachineStatus string            `json:"machineStatus,omitempty"`
 	Services      map[string]string `json:"services"`
-	Timestamp     time.Time
-	Machine       string
+	Timestamp     time.Time         `json:"-"`
+	Machine       string            `json:"-"`
 }
 
 type probeObject struct {
