@@ -13,7 +13,10 @@ env:
   IMAGE_NAME: deepsentinel-server
 
 jobs:
+  tests:
+    uses: .github/workflows/go-tests-coverage.yml
   build:
+    needs: [tests]
     strategy:
       matrix:
         component:
@@ -36,6 +39,7 @@ jobs:
       prerelease: true
   
   package:
+    needs: [tests, build]
     permissions:
       contents: read
       packages: write
@@ -85,7 +89,7 @@ jobs:
 
   # This step calls the container workflow to generate provenance and push it to
   # the container registry.
-  provenance:
+  package-provenance:
     needs: [package]
     permissions:
       actions: read
