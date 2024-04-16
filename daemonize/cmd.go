@@ -31,6 +31,11 @@ func Cmd(rootCmd *cobra.Command, component daemonType) {
 		Run: func(cmd *cobra.Command, args []string) {
 			Daemonize(component, false)
 			fmt.Println("Daemon installed.")
+			fmt.Println("If you didn't add deepSentinel to the system PATH, you follow the following steps to add the binaries to yours.")
+			fmt.Println("For Bash:")
+			fmt.Println("Add `export PATH=$PATH:/etc/deepsentinel/bin` to your ~/.bashrc file and run `source ~/.bashrc`.")
+			fmt.Println("For Zsh:")
+			fmt.Println("Add `export PATH=$PATH:/etc/deepsentinel/bin` to your ~/.zshrc file and run `source ~/.zshrc`.")
 		},
 	}
 	daemonizeCmd.AddCommand(installCmd)
