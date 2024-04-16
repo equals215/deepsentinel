@@ -32,7 +32,7 @@ jobs:
             version: v2.0.0
 
         - name: Run tests
-          run: sudo go test -race -json -v -coverprofile=coverage.txt ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+          run: go test -race -json -v -coverprofile=coverage.txt ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
 
         - name: Convert go coverage to corbetura format
           run: gocover-cobertura < coverage.txt > coverage.xml

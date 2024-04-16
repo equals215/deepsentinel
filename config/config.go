@@ -27,7 +27,8 @@ func SetLogging() {
 		loggingLevel = Server.LoggingLevel
 	} else if Agent != nil {
 		loggingLevel = Agent.LoggingLevel
-	} else {
+	}
+	if loggingLevel == "" {
 		loggingLevel = "info"
 	}
 
