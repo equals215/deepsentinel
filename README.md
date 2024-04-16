@@ -31,7 +31,7 @@ DeepSentinel is thought and coded to fit very niche use-cases where a reliabilit
 
 * `server` runs fully in-ram with a low ressource footprint
     - Can be hosted on a high SLA serverless provider
-    - Doesn't need disk access
+    - Doesn't need disk access (but appreciate it to persist the auth-token)
 * `agent` pushes simple JSON payloads via HTTP/S as an alive signal
 * Both `server` and `agent` are monitoring themselves for any fatal error
 * `agent` daemonize itself and runs no matter what
