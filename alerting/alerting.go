@@ -24,14 +24,6 @@ func Init(config *config.ServerConfig, noAlerting bool) {
 	_init(config, noAlerting)
 }
 
-// func InitForPanicWatcher(serverConfig *config.ServerConfig, noAlerting bool) {
-// 	log.SetOutput(io.Discard)
-
-// 	_init(serverConfig, false, noAlerting)
-
-// 	config.SetLogging()
-// }
-
 func _init(serverConfig *config.ServerConfig, noAlerting bool) {
 	var err error
 
