@@ -20,7 +20,8 @@ var instructionMap = map[string]func(...any) error{
 	"machine-name":   config.AgentSetMachineName,
 }
 
-func doConfigInstruction(instruction string, args []string) error {
+// DoConfigInstruction sends an instruction to the agent
+func DoConfigInstruction(instruction string, args []string) error {
 	var message string
 
 	err := testIPCSocket()
@@ -88,7 +89,7 @@ func configServerAddressCmd() *cobra.Command {
 			}
 
 			log.Trace("URL is valid")
-			err = doConfigInstruction("server-address", args)
+			err = DoConfigInstruction("server-address", args)
 			if err != nil {
 				fmt.Println("Failed to set server address:", err)
 				os.Exit(1)
@@ -115,7 +116,7 @@ func configAuthTokenCmd() *cobra.Command {
 				log.Fatalf("an error occurred while redacting: %s", err)
 			}
 			fmt.Println("Set auth token to", redactedToken)
-			err = doConfigInstruction("auth-token", args)
+			err = DoConfigInstruction("auth-token", args)
 			if err != nil {
 				fmt.Println("Failed to set auth token:", err)
 				os.Exit(1)
@@ -134,7 +135,7 @@ func configMachineNameCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Set machine name to", args[0])
-			err := doConfigInstruction("machine-name", args)
+			err := DoConfigInstruction("machine-name", args)
 			if err != nil {
 				fmt.Println("Failed to set machine name:", err)
 				os.Exit(1)

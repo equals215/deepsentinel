@@ -4,6 +4,7 @@ go 1.21.3
 
 require (
 	github.com/PagerDuty/go-pagerduty v1.8.0
+	github.com/brasic/launchd v1.0.3
 	github.com/gofiber/fiber/v2 v2.52.2
 	github.com/grongor/panicwatch v1.2.0
 	github.com/jxsl13/osfacts v0.4.0
@@ -17,6 +18,7 @@ require (
 require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/glycerine/rbuf v0.0.0-20190314090850-75b78581bebe // indirect
 	github.com/go-errors/errors v1.5.1 // indirect

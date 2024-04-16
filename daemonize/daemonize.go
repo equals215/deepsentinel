@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/equals215/deepsentinel/config"
 	"github.com/jxsl13/osfacts/distro"
 )
 
@@ -18,19 +19,27 @@ const (
 	Agent
 )
 
+func (d daemonType) String() string {
+	return [...]string{"server", "agent"}[d]
+}
+
+func (d daemonType) binaryPath() string {
+	return [...]string{serverBinaryPath, agentBinaryPath}[d]
+}
+
 var (
-	serverBinaryPath = "/etc/deepsentinel/server"
-	agentBinaryPath  = "/etc/deepsentinel/agent"
+	serverBinaryPath = "/etc/deepsentinel/bin/deepsentinel-server"
+	agentBinaryPath  = "/etc/deepsentinel/bin/deepsentinel-agent"
 )
 
 type daemon interface {
-	isDaemonInstalled(daemonType) bool
-	isDaemonRunning(daemonType) bool
-	installDaemon(daemonType) error
-	uninstallDaemon(daemonType) error
-	updateDaemon(daemonType) error
-	startDaemon(daemonType) error
-	stopDaemon(daemonType) error
+	isDaemonInstalled() bool
+	isDaemonRunning() bool
+	installDaemon() error
+	uninstallDaemon() error
+	updateDaemon() error
+	startDaemon() error
+	stopDaemon() error
 }
 
 // Daemonize installs and starts daemons
@@ -38,39 +47,33 @@ func Daemonize(component daemonType, update bool) {
 	var daemon daemon
 	var err error
 
-	if daemon, err = getDaemonSystem(); err != nil {
-		fmt.Println("Unsupported OS.")
+	config.CraftAgentConfig()
+	config.SetLogging()
+
+	if daemon, err = getDaemonSystem(component); err != nil {
+		fmt.Printf("Unsupported OS: %v\n", err)
 		os.Exit(1)
 	}
 	if update {
-		if !daemon.isDaemonInstalled(component) {
+		if !daemon.isDaemonInstalled() {
 			fmt.Println("Daemon is not installed.")
 			os.Exit(1)
 		}
-		if err := daemon.updateDaemon(component); err != nil {
+		if err := daemon.updateDaemon(); err != nil {
 			fmt.Printf("Failed to update daemon: %v\n", err)
 			os.Exit(1)
 		}
 	}
-	if !daemon.isDaemonRunning(component) {
-		if component == Agent {
-			if _, err := os.Stat(agentBinaryPath); errors.Is(err, os.ErrNotExist) {
-				copyBinary(agentBinaryPath)
-			}
-		} else if component == Server {
-			if _, err := os.Stat(serverBinaryPath); errors.Is(err, os.ErrNotExist) {
-				copyBinary(serverBinaryPath)
-			}
-		}
-		if !daemon.isDaemonInstalled(component) {
-			err := daemon.installDaemon(component)
+	if !daemon.isDaemonRunning() {
+		if !daemon.isDaemonInstalled() {
+			err := daemon.installDaemon()
 			if err != nil {
 				fmt.Printf("Failed to install daemon: %v\n", err)
 				os.Exit(1)
 			}
 		}
 
-		daemon.startDaemon(component)
+		daemon.startDaemon()
 	}
 }
 
@@ -79,21 +82,24 @@ func UninstallDaemon(component daemonType) {
 	var daemon daemon
 	var err error
 
-	if daemon, err = getDaemonSystem(); err != nil {
-		fmt.Println("Unsupported OS.")
+	config.CraftAgentConfig()
+	config.SetLogging()
+
+	if daemon, err = getDaemonSystem(component); err != nil {
+		fmt.Printf("Unsupported OS: %v\n", err)
 		os.Exit(1)
 	}
-	if !daemon.isDaemonInstalled(component) {
+	if !daemon.isDaemonInstalled() {
 		fmt.Println("Daemon is not installed.")
 		os.Exit(1)
 	}
-	if err := daemon.uninstallDaemon(component); err != nil {
+	if err := daemon.uninstallDaemon(); err != nil {
 		fmt.Printf("Failed to uninstall daemon: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func getDaemonSystem() (daemon, error) {
+func getDaemonSystem(component daemonType) (daemon, error) {
 	o, err := distro.Detect()
 	if err != nil {
 		return nil, err
@@ -102,15 +108,45 @@ func getDaemonSystem() (daemon, error) {
 	switch strings.ToLower(o.Distribution) {
 	case "debian", "ubuntu", "kali":
 		if _, err := os.Stat("/bin/systemctl"); err == nil {
-			return &systemdDaemon{}, nil
+			return &systemdDaemon{
+				component: component,
+			}, nil
 		}
 		return nil, fmt.Errorf("systemd not found")
+	case "macos", "darwin":
+		if _, err := os.Stat("/bin/launchctl"); err == nil {
+			launchd := &launchdDaemon{
+				component: component,
+			}
+			launchd.primeDaemon()
+			return launchd, nil
+		}
+		return nil, fmt.Errorf("launchd not found")
 	}
 	return nil, fmt.Errorf("unknown or unsupported daemon system")
 }
 
+func installBinary(component daemonType) error {
+	var err error
+
+	if component == Agent {
+		if _, err = os.Stat(agentBinaryPath); errors.Is(err, os.ErrNotExist) {
+			copyBinary(agentBinaryPath)
+			return nil
+		}
+		return err
+	} else if component == Server {
+		if _, err = os.Stat(serverBinaryPath); errors.Is(err, os.ErrNotExist) {
+			copyBinary(serverBinaryPath)
+			return nil
+		}
+		return err
+	}
+	return fmt.Errorf("unknown component")
+}
+
 func copyBinary(destination string) {
-	if err := os.MkdirAll("/etc/deepsentinel", 0755); err != nil {
+	if err := os.MkdirAll("/etc/deepsentinel/bin", 0755); err != nil {
 		fmt.Printf("Failed to create directory: %v\n", err)
 		os.Exit(1)
 	}
