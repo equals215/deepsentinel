@@ -14,7 +14,7 @@ func UnregisterCmd(rootCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Unregistering agent")
-			doConfigInstruction("unregister", args)
+			DoConfigInstruction("unregister", args)
 		},
 	}
 
