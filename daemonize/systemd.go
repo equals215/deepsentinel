@@ -10,26 +10,24 @@ import (
 	"github.com/equals215/deepsentinel/agent"
 )
 
-var (
-	systemdServerServiceFileName = "deepsentinel-server.service"
-	systemdAgentServiceFileName  = "deepsentinel-agent.service"
-	systemdServerServiceFilePath = "/etc/systemd/system/" + systemdServerServiceFileName
-	systemdAgentServiceFilePath  = "/etc/systemd/system/" + systemdAgentServiceFileName
-)
+func (d systemdDaemon) serviceFileName() string {
+	return [...]string{"deepsentinel-server.service", "deepsentinel-agent.service"}[d.component]
+}
+
+func (d systemdDaemon) serviceFilePath() string {
+	return [...]string{"/etc/systemd/system/" + d.serviceFileName(), "/etc/systemd/system/" + d.serviceFileName()}[d.component]
+}
+
+func (d systemdDaemon) binaryPath() string {
+	return [...]string{d.component.binaryPath(), d.component.binaryPath()}[d.component]
+}
 
 type systemdDaemon struct {
 	component daemonType
 }
 
 func (d *systemdDaemon) isDaemonInstalled() bool {
-	var serviceFileName string
-	if d.component == Server {
-		serviceFileName = systemdServerServiceFileName
-	} else if d.component == Agent {
-		serviceFileName = systemdAgentServiceFileName
-	}
-
-	cmd := exec.Command("systemctl", "is-enabled", serviceFileName)
+	cmd := exec.Command("systemctl", "is-enabled", d.serviceFileName())
 	err := cmd.Run()
 	if err != nil {
 		return false
@@ -38,14 +36,7 @@ func (d *systemdDaemon) isDaemonInstalled() bool {
 }
 
 func (d *systemdDaemon) isDaemonRunning() bool {
-	var serviceFileName string
-	if d.component == Server {
-		serviceFileName = systemdServerServiceFileName
-	} else if d.component == Agent {
-		serviceFileName = systemdAgentServiceFileName
-	}
-
-	cmd := exec.Command("systemctl", "is-active", serviceFileName)
+	cmd := exec.Command("systemctl", "is-active", d.serviceFileName())
 	err := cmd.Run()
 	if err != nil {
 		return false
@@ -54,24 +45,7 @@ func (d *systemdDaemon) isDaemonRunning() bool {
 }
 
 func (d *systemdDaemon) installDaemon() error {
-	var serviceFileName string
-	var binaryPath string
-	var serviceFilePath string
-	var serviceName string
-
 	installBinary(d.component)
-
-	if d.component == Server {
-		serviceFileName = systemdServerServiceFileName
-		binaryPath = serverBinaryPath
-		serviceFilePath = systemdServerServiceFilePath
-		serviceName = "deepSentinel Server"
-	} else if d.component == Agent {
-		serviceFileName = systemdAgentServiceFileName
-		binaryPath = agentBinaryPath
-		serviceFilePath = systemdAgentServiceFilePath
-		serviceName = "deepSentinel Agent"
-	}
 
 	// Copy the systemd-template.service to serviceFilePath
 	template := `[Unit]
@@ -84,10 +58,10 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target`
-	template = strings.ReplaceAll(template, "<binaryPath>", binaryPath)
-	template = strings.ReplaceAll(template, "<service>", serviceName)
+	template = strings.ReplaceAll(template, "<binaryPath>", d.component.binaryPath())
+	template = strings.ReplaceAll(template, "<service>", "deepSentinel "+d.component.String())
 
-	err := os.WriteFile(serviceFilePath, []byte(template), 0644)
+	err := os.WriteFile(d.serviceFilePath(), []byte(template), 0644)
 	if err != nil {
 		return err
 	}
@@ -98,7 +72,7 @@ WantedBy=multi-user.target`
 		return err
 	}
 
-	cmd = exec.Command("systemctl", "enable", serviceFileName)
+	cmd = exec.Command("systemctl", "enable", d.serviceFileName())
 	err = cmd.Run()
 	if err != nil {
 		return err
@@ -108,31 +82,18 @@ WantedBy=multi-user.target`
 }
 
 func (d *systemdDaemon) uninstallDaemon() error {
-	var serviceFileName string
-	var serviceFilePath string
-	var binaryPath string
-	if d.component == Server {
-		serviceFileName = systemdServerServiceFileName
-		serviceFilePath = systemdServerServiceFilePath
-		binaryPath = serverBinaryPath
-	} else if d.component == Agent {
-		serviceFileName = systemdAgentServiceFileName
-		serviceFilePath = systemdAgentServiceFilePath
-		binaryPath = agentBinaryPath
-	}
-
 	err := d.stopDaemon()
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("systemctl", "disable", serviceFileName)
+	cmd := exec.Command("systemctl", "disable", d.serviceFileName())
 	err = cmd.Run()
 	if err != nil {
 		return err
 	}
 
-	err = os.Remove(serviceFilePath)
+	err = os.Remove(d.serviceFilePath())
 	if err != nil {
 		return err
 	}
@@ -143,7 +104,7 @@ func (d *systemdDaemon) uninstallDaemon() error {
 		return err
 	}
 
-	err = os.Remove(binaryPath)
+	err = os.Remove(d.binaryPath())
 	if err != nil {
 		return err
 	}
@@ -152,21 +113,14 @@ func (d *systemdDaemon) uninstallDaemon() error {
 }
 
 func (d *systemdDaemon) updateDaemon() error {
-	var binaryPath string
-	if d.component == Server {
-		binaryPath = serverBinaryPath
-	} else if d.component == Agent {
-		binaryPath = agentBinaryPath
-	}
-
 	d.stopDaemon()
 
-	err := os.Remove(binaryPath)
+	err := os.Remove(d.binaryPath())
 	if err != nil {
 		return err
 	}
 
-	copyBinary(binaryPath)
+	copyBinary(d.binaryPath())
 
 	d.startDaemon()
 
@@ -174,13 +128,6 @@ func (d *systemdDaemon) updateDaemon() error {
 }
 
 func (d *systemdDaemon) stopDaemon() error {
-	var serviceFileName string
-	if d.component == Server {
-		serviceFileName = systemdServerServiceFileName
-	} else if d.component == Agent {
-		serviceFileName = systemdAgentServiceFileName
-	}
-
 	err := agent.DoConfigInstruction("unregister", nil)
 	if err != nil {
 		return err
@@ -190,7 +137,7 @@ func (d *systemdDaemon) stopDaemon() error {
 	fmt.Println("Waiting for the agent to unregister successfully...")
 	time.Sleep(5 * time.Second)
 
-	cmd := exec.Command("systemctl", "stop", serviceFileName)
+	cmd := exec.Command("systemctl", "stop", d.serviceFileName())
 	err = cmd.Run()
 	if err != nil {
 		return err
@@ -199,14 +146,7 @@ func (d *systemdDaemon) stopDaemon() error {
 }
 
 func (d *systemdDaemon) startDaemon() error {
-	var serviceFileName string
-	if d.component == Server {
-		serviceFileName = systemdServerServiceFileName
-	} else if d.component == Agent {
-		serviceFileName = systemdAgentServiceFileName
-	}
-
-	cmd := exec.Command("systemctl", "start", serviceFileName)
+	cmd := exec.Command("systemctl", "start", d.serviceFileName())
 	err := cmd.Run()
 	if err != nil {
 		return err
@@ -215,14 +155,7 @@ func (d *systemdDaemon) startDaemon() error {
 }
 
 func (d *systemdDaemon) restartDaemon() error {
-	var serviceFileName string
-	if d.component == Server {
-		serviceFileName = systemdServerServiceFileName
-	} else if d.component == Agent {
-		serviceFileName = systemdAgentServiceFileName
-	}
-
-	cmd := exec.Command("systemctl", "restart", serviceFileName)
+	cmd := exec.Command("systemctl", "restart", d.serviceFileName())
 	err := cmd.Run()
 	if err != nil {
 		return err
