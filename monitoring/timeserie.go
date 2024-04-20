@@ -18,8 +18,6 @@ const (
 	fail
 )
 
-const trimTimeSeriesThreshold = 100
-
 func stringtoStatusType(str string) (statusType, error) {
 	strStatus := map[string]statusType{
 		"pass": pass,
@@ -112,77 +110,6 @@ func (p *probeObject) storePayload(payload *Payload) {
 		"status":  p.status,
 		"size":    p.timeSerie.size,
 	}).Trace("Payload stored in timeserie")
-}
-
-func (p *probeObject) trimTimeSerie() {
-	p.timeSerie.Lock()
-	defer p.timeSerie.Unlock()
-
-	log.WithFields(log.Fields{
-		"probe": p.name,
-		"size":  p.timeSerie.size,
-	}).Trace("Trimming timeserie")
-
-	count := 0
-	historicalAllPass := true
-	currentNode := p.timeSerie.head
-	for currentNode != nil {
-		for _, service := range currentNode.services {
-			if service.status != pass {
-				historicalAllPass = false
-				break
-			}
-		}
-		if !historicalAllPass {
-			break
-		}
-		if count >= trimTimeSeriesThreshold {
-			break
-		}
-		count++
-		currentNode = currentNode.previous
-	}
-
-	if historicalAllPass {
-		p.timeSerie.head.previous = nil
-		p.timeSerie.size = 1
-		log.WithFields(log.Fields{
-			"probe": p.name,
-			"size":  p.timeSerie.size,
-		}).Trace("All historical data is pass trimmed timeserie to latest node")
-		return
-	}
-
-	if count >= trimTimeSeriesThreshold {
-		currentNode = p.timeSerie.head
-		for i := 0; i < trimTimeSeriesThreshold-1; i++ {
-			currentNode = currentNode.previous
-		}
-		currentNode.previous = nil
-		p.timeSerie.size = trimTimeSeriesThreshold
-		log.WithFields(log.Fields{
-			"probe": p.name,
-			"size":  p.timeSerie.size,
-		}).Trace("Trimmed timeserie to last 10 nodes")
-		return
-	}
-
-	if currentNode != nil {
-		currentNode.previous = nil
-		p.timeSerie.size = count
-		log.WithFields(log.Fields{
-			"probe": p.name,
-			"size":  p.timeSerie.size,
-		}).Trace("Trimmed timeserie to node with first non-pass status")
-		return
-	}
-
-	p.timeSerie.size = 0
-	p.timeSerie.head = nil
-	log.WithFields(log.Fields{
-		"probe": p.name,
-		"size":  p.timeSerie.size,
-	}).Error("Trimmed timeserie to empty")
 }
 
 func (p *probeObject) checkAlert() {
