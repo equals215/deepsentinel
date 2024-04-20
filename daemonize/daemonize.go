@@ -24,13 +24,8 @@ func (d daemonType) String() string {
 }
 
 func (d daemonType) binaryPath() string {
-	return [...]string{serverBinaryPath, agentBinaryPath}[d]
+	return [...]string{"/etc/deepsentinel/bin/deepsentinel-server", "/etc/deepsentinel/bin/deepsentinel-agent"}[d]
 }
-
-var (
-	serverBinaryPath = "/etc/deepsentinel/bin/deepsentinel-server"
-	agentBinaryPath  = "/etc/deepsentinel/bin/deepsentinel-agent"
-)
 
 type daemon interface {
 	isDaemonInstalled() bool
@@ -129,20 +124,11 @@ func getDaemonSystem(component daemonType) (daemon, error) {
 func installBinary(component daemonType) error {
 	var err error
 
-	if component == Agent {
-		if _, err = os.Stat(agentBinaryPath); errors.Is(err, os.ErrNotExist) {
-			copyBinary(agentBinaryPath)
-			return nil
-		}
-		return err
-	} else if component == Server {
-		if _, err = os.Stat(serverBinaryPath); errors.Is(err, os.ErrNotExist) {
-			copyBinary(serverBinaryPath)
-			return nil
-		}
-		return err
+	if _, err = os.Stat(component.binaryPath()); errors.Is(err, os.ErrNotExist) {
+		copyBinary(component.binaryPath())
+		return nil
 	}
-	return fmt.Errorf("unknown component")
+	return err
 }
 
 func copyBinary(destination string) {
