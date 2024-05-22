@@ -56,8 +56,8 @@ DeepSentinel is thought and coded to fit very niche use-cases where a reliabilit
 ### Install Server
 #### Via Docker
 On any instance that has Docker installed you can run the following commands :
+
 ```bash
-docker pull ghcr.io/equals215/deepsentinel-server:latest
 docker run \
     -v /your/host/path:/etc/deepsentinel \
     -p <host_port>:5000 \
@@ -76,26 +76,30 @@ docker run \
     ghcr.io/equals215/deepsentinel-server:latest
 
 ```
+
 Replace latest by any tag you want to run. Docker Image tag == Repo tag.  
 Adapt environment variables based on the config you want to apply.  
+
 **You will have to grab the auth token from either the logs or the config file bind mounted to your host**
 
 #### Via binaries
 1. Get the server binary that matches your system under the [Release section](https://github.com/equals215/deepsentinel/releases).  
-With `wget` :
+- With `wget` :
+
 ```bash
-wget https://github.com/equals215/deepsentinel/releases/download/v0.0.2-untested/deepsentinel-server-linux-amd64 -o deepsentinel-server
+wget https://github.com/equals215/deepsentinel/releases/download/v0.0.3-untested/deepsentinel-server-linux-amd64 -O deepsentinel-server && \
 chmod +x deepsentinel-server
 ```
 
-With `curl` :
+- With `curl` :
 ```bash
-curl -o deepsentinel-server https://github.com/equals215/deepsentinel/releases/download/v0.0.2-untested/deepsentinel-server-linux-amd64
+curl -o deepsentinel-server https://github.com/equals215/deepsentinel/releases/download/v0.0.3-untested/deepsentinel-server-linux-amd64 && \
 chmod +x deepsentinel-server
 ```
 
-2. Now you have to configure the server, you can either do it :  
-**using a config file (preferred method)**
+2. Now you have to configure the server :  
+
+Create the config file :
 ```bash
 mkdir -p /etc/deepsentinel/
 nano /etc/deepsentinel/server-config.json
@@ -108,7 +112,7 @@ nano /etc/deepsentinel/server-config.json
   "failed-to-alertlow": 20,
   "high-alert-provider": "pagerduty",
   "logging-level": "info",
-  "low-alert-provider": "pagerduty",
+  "low-alert-provider": "",
   "no-alert": false,
   "pagerduty": {
     "api-key": "...",
@@ -119,54 +123,8 @@ nano /etc/deepsentinel/server-config.json
   "probe-inactivity-delay": "5s"
 }
 ```
-**using the flags with the `run` command and `^C` the running program**
-```go
-./deepsentinel-server run --help
-Run the API server
 
-Usage:
-  deepsentinel-server run [flags]
-
-Flags:
-      --address string                     Listening address
-                                           Environment variable: DEEPSENTINEL_ADDRESS
-                                           (default "0.0.0.0")
-      --alertLow-to-alertHigh int          Number of alertLow event before alerting high
-                                           Environment variable: DEEPSENTINEL_ALERT_LOW_TO_ALERT_HIGH
-                                           (default 30)
-      --degraded-to-failed int             Number of degraded event before considering a probe or service as failed
-                                           Environment variable: DEEPSENTINEL_DEGRADED_TO_FAILED
-                                           (default 10)
-      --failed-to-alertLow int             Number of failed event before alerting low
-                                           Environment variable: DEEPSENTINEL_FAILED_TO_ALERT_LOW
-                                           (default 20)
-      --high-alert-provider string         High alert provider name
-                                           Environment variable: DEEPSENTINEL_HIGH_ALERT_PROVIDER
-
-      --logging-level string               Logging level
-                                           Environment variable: DEEPSENTINEL_LOGGING_LEVEL
-                                           (default "info")
-      --low-alert-provider string          Low alert provider name
-                                           Environment variable: DEEPSENTINEL_LOW_ALERT_PROVIDER
-
-      --no-alert                           Disable alerting
-      --pagerduty.api-key string           PagerDuty API key
-                                           Environment variable: DEEPSENTINEL_PAGERDUTY_API_KEY
-
-      --pagerduty.integration-key string   PagerDuty integration key
-                                           Environment variable: DEEPSENTINEL_PAGERDUTY_INTEGRATION_KEY
-
-      --pagerduty.integration-url string   PagerDuty integration URL
-                                           Environment variable: DEEPSENTINEL_PAGERDUTY_INTEGRATION_URL
-
-      --port string                        Listening port
-                                           Environment variable: DEEPSENTINEL_PORT
-                                           (default "5000")
-      --probe-inactivity-delay string      Delay before considering a probe inactive
-                                           Environment variable: DEEPSENTINEL_PROBE_INACTIVITY_DELAY
-                                           (default "2s")
-```
-3. Now that you or the server generated then configuration you can daemonize it if you system supports `systemd` or `launchd` :
+3. Now that you generated the configuration you can daemonize it if your system supports `systemd` or `launchd` :
 ```bash
 ./deepsentinel-server daemon install
 ```
@@ -177,64 +135,28 @@ Flags:
 
 As the agent is supposed to be run as close to the system as possible, it's not a good practice to run it inside a Docker container, hence why there is not Docker container for it 🤠  
 1. Get the agent binary that matches your system under the [Release section](https://github.com/equals215/deepsentinel/releases).  
-With `wget` :
+
+- With `wget` :
 ```bash
-wget https://github.com/equals215/deepsentinel/releases/download/v0.0.2-untested/deepsentinel-agent-linux-amd64 -o deepsentinel-agent
+wget https://github.com/equals215/deepsentinel/releases/download/v0.0.3-untested/deepsentinel-agent-linux-amd64 -O deepsentinel-agent && \
 chmod +x deepsentinel-agent
 ```
 
-With `curl` :
+- With `curl` :
 ```bash
-curl -o deepsentinel-agent https://github.com/equals215/deepsentinel/releases/download/v0.0.2-untested/deepsentinel-agent-linux-amd64
+curl -o deepsentinel-agent https://github.com/equals215/deepsentinel/releases/download/v0.0.3-untested/deepsentinel-agent-linux-amd64 && \
 chmod +x deepsentinel-agent
 ```
-2. Now you have to configure the agent, you can either do it :  
-**using the `config` command (preferred method) :**
-```go
-./deepsentinel-agent config --help
-Configure the running agent
 
-Usage:
-  deepsentinel config [flags]
-  deepsentinel config [command]
+2. Now you have to configure the agent using the `install` command :  
 
-Available Commands:
-  auth-token     Set the authentication token
-  machine-name   Set the machine name
-  server-address Set the server address
+The following command will ask you for `auth-token`, `server-address` and `machine-name` in order to set up properly. It will then generate it's config file located in `/etc/deepsentinel/agent-config.json` and daemonize itself if your system supports `systemd` or `launchd`
 
-Flags:
-      --logging-level string   Logging level
-                               Environment variable: DEEPSENTINEL_LOGGING_LEVEL
-                               (default "info")
-```
-For example :
 ```bash
-./deepsentinel-agent config auth-token totofoobar123456 && \
-./deepsentinel-agent config machine-name buzz-lightyear && \
-./deepsentinel-agent config server-address https://google.com:5000
-```
-**using a config file :**
-```bash
-mkdir -p /etc/deepsentinel/
-nano /etc/deepsentinel/agent-config.json
-```
-```json
-{
-  "auth-token": "totofoobar123456",
-  "logging-level": "info",
-  "machine-name": "buzz-lightyear",
-  "server-address": "https://google.com:5000"
-}
-```
-3. Now that the agent is properly configured, it's time to daemonize it if you system supports `systemd` or `launchd` :
-```bash
-./deepsentinel-agent daemon install
+sudo ./deepsentinel-agent install
 ```
 
-4. Your agent should now be sending alive signals to the server. Check the server's logs to ensure that everything is setup properly.
-#### Via fly.io
->TBD
+3. Your agent should now be sending alive signals to the server. Check the server's logs to ensure that everything is setup properly.  
 
 ## Credits
 > TBD
