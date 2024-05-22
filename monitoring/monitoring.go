@@ -1,3 +1,4 @@
+// Package monitoring provides the logic to monitor the services and machines.
 package monitoring
 
 import (
@@ -59,13 +60,7 @@ func Handle(channel chan *Payload) {
 				probe := loaded.(*probeObject)
 				if payload.MachineStatus == "delete" {
 					// Delete the probe
-					log.WithFields(log.Fields{
-						"probe":   probe.name,
-						"machine": payload.Machine,
-					}).Info("Deleting probe")
-					probe.stop <- true
-					close(probe.data)
-					close(probe.stop)
+					probe.delete()
 					probeMap.Delete(payload.Machine)
 				} else {
 					// Send the payload to the probe
@@ -73,22 +68,7 @@ func Handle(channel chan *Payload) {
 				}
 			} else {
 				// Create a new probe
-				newProbe := &probeObject{
-					name:       payload.Machine,
-					data:       make(chan *Payload, 1),
-					stop:       make(chan bool),
-					status:     normal,
-					counter:    0,
-					lastNormal: time.Now(),
-					timeSerie: &probeTimeSerie{
-						head: &timeSerieNode{
-							timestamp: payload.Timestamp,
-							services:  make(map[string]*serviceStatus),
-							previous:  nil,
-						},
-						size: 1,
-					},
-				}
+				newProbe := makeProbe(payload)
 
 				value, loaded := probeMap.LoadOrStore(payload.Machine, newProbe)
 				if loaded {
@@ -199,4 +179,32 @@ func (p *probeObject) updateStatus() {
 		return
 	}
 	log.Infof("Machine %s is now in %s state\n", p.name, p.status.String())
+}
+
+func (p *probeObject) delete() {
+	log.WithFields(log.Fields{
+		"probe": p.name,
+	}).Info("Deleting probe")
+	p.stop <- true
+	close(p.data)
+	close(p.stop)
+}
+
+func makeProbe(originPayload *Payload) *probeObject {
+	return &probeObject{
+		name:       originPayload.Machine,
+		data:       make(chan *Payload, 1),
+		stop:       make(chan bool),
+		status:     normal,
+		counter:    0,
+		lastNormal: time.Now(),
+		timeSerie: &probeTimeSerie{
+			head: &timeSerieNode{
+				timestamp: originPayload.Timestamp,
+				services:  make(map[string]*serviceStatus),
+				previous:  nil,
+			},
+			size: 1,
+		},
+	}
 }
