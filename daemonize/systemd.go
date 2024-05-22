@@ -128,7 +128,7 @@ func (d *systemdDaemon) updateDaemon() error {
 }
 
 func (d *systemdDaemon) stopDaemon() error {
-	err := agent.DoConfigInstruction("unregister", nil)
+	err := agent.ExecuteConfigInstruction("unregister", nil)
 	if err != nil {
 		return err
 	}

@@ -46,7 +46,7 @@ func (d *launchdDaemon) installDaemon() error {
 func (d *launchdDaemon) uninstallDaemon() error {
 	removePlist := true
 
-	err := agent.DoConfigInstruction("unregister", nil)
+	err := agent.ExecuteConfigInstruction("unregister", nil)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (d *launchdDaemon) updateDaemon() error {
 }
 
 func (d *launchdDaemon) stopDaemon() error {
-	err := agent.DoConfigInstruction("unregister", nil)
+	err := agent.ExecuteConfigInstruction("unregister", nil)
 	if err != nil {
 		return err
 	}

@@ -49,8 +49,6 @@ func CraftServerConfig() error {
 	viper.SetConfigName("server-config")
 	viper.SetConfigType("json")
 	viper.AddConfigPath("/etc/deepsentinel/")
-	viper.AddConfigPath("$HOME/.deepsentinel")
-	viper.AddConfigPath(".")
 	viper.ReadInConfig()
 
 	viper.SetEnvPrefix("DEEPSENTINEL")

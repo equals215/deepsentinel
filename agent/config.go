@@ -20,24 +20,28 @@ var instructionMap = map[string]func(...any) error{
 	"machine-name":   config.AgentSetMachineName,
 }
 
-// DoConfigInstruction sends an instruction to the agent
-func DoConfigInstruction(instruction string, args []string) error {
+// ExecuteConfigInstruction executes a config instruction and either sends an instruction to the agent or performs the instruction directly
+func ExecuteConfigInstruction(instruction string, args []string) error {
 	var message string
 
-	err := testIPCSocket()
+	message = fmt.Sprintf("%s=%s", instruction, strings.Join(args, ","))
 	if instruction == "unregister" {
 		message = "stop"
-	} else {
-		message = fmt.Sprintf("%s=%s", instruction, strings.Join(args, ","))
 	}
 	log.Trace("Instruction is: ", message)
+
+	err := testIPCSocket()
 	if err != nil {
+		if !errors.Is(err, syscall.ECONNREFUSED) && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("failed to start IPC client: %s", err)
+		}
 		if (errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, os.ErrNotExist)) && instruction != "unregister" {
 			log.Trace("Daemon not running or not acepting connections. Configuring client directly.")
 			processRequest(message)
-			return nil
+		} else if (errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, os.ErrNotExist)) && instruction == "unregister" {
+			log.Trace("Daemon not running or not acepting connections. No need to unregister.")
 		}
-		return fmt.Errorf("failed to start IPC client: %s", err)
+		return nil
 	}
 	log.Trace("IPC Agent started.")
 
@@ -89,7 +93,7 @@ func configServerAddressCmd() *cobra.Command {
 			}
 
 			log.Trace("URL is valid")
-			err = DoConfigInstruction("server-address", args)
+			err = ExecuteConfigInstruction("server-address", args)
 			if err != nil {
 				fmt.Println("Failed to set server address:", err)
 				os.Exit(1)
@@ -116,7 +120,7 @@ func configAuthTokenCmd() *cobra.Command {
 				log.Fatalf("an error occurred while redacting: %s", err)
 			}
 			fmt.Println("Set auth token to", redactedToken)
-			err = DoConfigInstruction("auth-token", args)
+			err = ExecuteConfigInstruction("auth-token", args)
 			if err != nil {
 				fmt.Println("Failed to set auth token:", err)
 				os.Exit(1)
@@ -135,7 +139,7 @@ func configMachineNameCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Set machine name to", args[0])
-			err := DoConfigInstruction("machine-name", args)
+			err := ExecuteConfigInstruction("machine-name", args)
 			if err != nil {
 				fmt.Println("Failed to set machine name:", err)
 				os.Exit(1)
