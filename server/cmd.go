@@ -5,6 +5,7 @@ import (
 
 	"github.com/equals215/deepsentinel/alerting"
 	"github.com/equals215/deepsentinel/config"
+	"github.com/equals215/deepsentinel/dashboard"
 	"github.com/equals215/deepsentinel/monitoring"
 	"github.com/grongor/panicwatch"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ import (
 func Cmd(rootCmd *cobra.Command) {
 	var noAlerting bool
 	payloadChannel := make(chan *monitoring.Payload)
+	dashboardChannel := make(chan *dashboard.Data)
 
 	serverCmd := &cobra.Command{
 		Use:   "run",
@@ -30,10 +32,10 @@ func Cmd(rootCmd *cobra.Command) {
 			log.Infof("————————————")
 
 			config.PrintServerConfig()
-			go monitoring.Handle(payloadChannel)
+			go monitoring.Handle(payloadChannel, dashboardChannel)
 
 			addr := fmt.Sprintf("%s:%d", config.Server.ListeningAddress, config.Server.Port)
-			newServer(payloadChannel).Listen(addr)
+			newServer(payloadChannel, dashboardChannel).Listen(addr)
 			// Start panicwatch to catch panics
 			err := panicwatch.Start(panicwatch.Config{
 				OnPanic: func(p panicwatch.Panic) {

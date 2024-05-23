@@ -5,13 +5,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/equals215/deepsentinel/dashboard"
 	"github.com/equals215/deepsentinel/monitoring"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"github.com/gofiber/fiber/v2/utils"
 )
 
-func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
+func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *dashboard.Data) *fiber.App {
+	dashboardOperator := dashboard.Handle(dashboardChannel)
+
 	app := fiber.New(fiber.Config{
 		AppName: "DeepSentinel API",
 	})
@@ -31,6 +35,26 @@ func newServer(payloadChannel chan *monitoring.Payload) *fiber.App {
 	app.Delete("/probe/:machine", func(c *fiber.Ctx) error {
 		return deleteProbeHandler(c, payloadChannel)
 	})
+
+	app.Use("/dashws", func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
+
+	app.Get("/dashws", websocket.New(func(c *websocket.Conn) {
+		worker, workerID := dashboardOperator.NewWorker()
+		defer dashboardOperator.RemoveWorker(workerID)
+
+		for {
+			select {
+			case data := <-worker:
+				c.WriteJSON(data)
+			}
+		}
+	}))
 
 	return app
 }

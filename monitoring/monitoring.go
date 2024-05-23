@@ -2,11 +2,13 @@
 package monitoring
 
 import (
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/equals215/deepsentinel/alerting"
 	"github.com/equals215/deepsentinel/config"
+	"github.com/equals215/deepsentinel/dashboard"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,6 +42,7 @@ type Payload struct {
 }
 
 type probeObject struct {
+	sync.Mutex
 	name       string
 	data       chan *Payload
 	stop       chan bool
@@ -50,16 +53,46 @@ type probeObject struct {
 }
 
 // Handle function handles the payload from the API server
-func Handle(channel chan *Payload) {
+func Handle(channel chan *Payload, dashboardChannel chan *dashboard.Data) {
 	log.Debug("Starting monitoring.Handle")
 	var probeMap sync.Map
+	var probeList = make([]string, 0)
+	var timer = time.NewTimer(5 * time.Second)
+
 	for {
 		select {
+		case <-timer.C:
+			// Send the global status of all probes to the dashboard
+			dashboardPayload := &dashboard.Data{
+				Probes: make([]*dashboard.Probe, 0),
+			}
+			for _, probe := range probeList {
+				if loaded, ok := probeMap.Load(probe); ok {
+					probe := loaded.(*probeObject)
+					probe.Lock()
+					dashboardProbe := &dashboard.Probe{
+						Name:   strings.Clone(probe.name),
+						Status: strings.Clone(probe.status.String()),
+					}
+					probe.Unlock()
+					dashboardPayload.Probes = append(dashboardPayload.Probes, dashboardProbe)
+				}
+			}
+			dashboardChannel <- dashboardPayload
+			timer.Reset(5 * time.Second)
+			continue
 		case payload := <-channel:
 			if loaded, ok := probeMap.Load(payload.Machine); ok {
 				probe := loaded.(*probeObject)
 				if payload.MachineStatus == "delete" {
 					// Delete the probe
+					probe.Lock()
+					for i, name := range probeList {
+						if name == payload.Machine {
+							probeList = append(probeList[:i], probeList[i+1:]...)
+							break
+						}
+					}
 					probe.delete()
 					probeMap.Delete(payload.Machine)
 				} else {
@@ -90,6 +123,7 @@ func Handle(channel chan *Payload) {
 					"status":  probe.status,
 				}).Info("Starting probe thread")
 
+				probeList = append(probeList, payload.Machine)
 				go probe.work()
 				probe.data <- payload
 			}
@@ -108,6 +142,7 @@ func (p *probeObject) work() {
 		case <-p.stop:
 			return
 		case payload := <-p.data:
+			p.Lock()
 			if payload.Machine != p.name {
 				log.WithFields(log.Fields{
 					"probe":   p.name,
@@ -122,9 +157,12 @@ func (p *probeObject) work() {
 			p.workServices(payload)
 			p.reset()
 			timer.Reset(inactivityDelay)
+			p.Unlock()
 		case <-timer.C:
+			p.Lock()
 			p.timerIncrement()
 			timer.Reset(inactivityDelay)
+			p.Unlock()
 		}
 	}
 }
