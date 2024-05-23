@@ -8,20 +8,21 @@ import (
 
 	"github.com/equals215/deepsentinel/config"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 )
 
-var apiProtectedURLs = []*regexp.Regexp{
-	regexp.MustCompile("^/probe(/.*)?$"),
-}
-
-var dashboardProtectedURLs = []*regexp.Regexp{
-	regexp.MustCompile("^/dashboard$"),
-}
-
-var dashboardWSprotectedURLs = []*regexp.Regexp{
-	regexp.MustCompile("^/dashws(/.*)?$"),
-}
+var (
+	apiProtectedURLs = []*regexp.Regexp{
+		regexp.MustCompile("^/probe(/.*)?$"),
+	}
+	dashboardProtectedURLs = []*regexp.Regexp{
+		regexp.MustCompile("^/dashboard$"),
+	}
+	dashboardWSprotectedURLs = []*regexp.Regexp{
+		regexp.MustCompile("^/dashws(/.*)?$"),
+	}
+)
 
 func authFilterAPI(c *fiber.Ctx) bool {
 	originalURL := strings.ToLower(c.OriginalURL())
@@ -64,4 +65,33 @@ func validateAuth(_ *fiber.Ctx, givenKey string) (bool, error) {
 		return true, nil
 	}
 	return false, keyauth.ErrMissingOrMalformedAPIKey
+}
+
+func fiberSetAuth(app *fiber.App) {
+	app.Use(keyauth.New(keyauth.Config{
+		Next:      authFilterAPI,
+		KeyLookup: "header:Authorization",
+		Validator: validateAuth,
+	}))
+
+	app.Use(basicauth.New(basicauth.Config{
+		Next:  authFilterDashboardWS,
+		Realm: "Dashboard",
+		Authorizer: func(user, pass string) bool {
+			if user == "admin" {
+				ok, err := validateAuth(nil, pass)
+				if err != nil {
+					return false
+				}
+				return ok
+			}
+			return false
+		},
+	}))
+
+	app.Use(keyauth.New(keyauth.Config{
+		Next:      authFilterDashboard,
+		KeyLookup: "cookie:auth_token",
+		Validator: validateAuth,
+	}))
 }
