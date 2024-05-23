@@ -11,9 +11,7 @@ import (
 	"github.com/equals215/deepsentinel/monitoring"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
-	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"github.com/gofiber/fiber/v2/utils"
 )
 
@@ -21,16 +19,12 @@ import (
 var dashboardStatic embed.FS
 
 func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *dashboard.Data) *fiber.App {
-
+	dashboardOperator := dashboard.Handle(dashboardChannel)
 	app := fiber.New(fiber.Config{
 		AppName: "DeepSentinel API",
 	})
 
-	app.Use(keyauth.New(keyauth.Config{
-		Next:      authFilterAPI,
-		KeyLookup: "header:Authorization",
-		Validator: validateAuth,
-	}))
+	fiberSetAuth(app)
 
 	app.Get("/health", getHealthHandler)
 
@@ -41,26 +35,6 @@ func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *d
 	app.Delete("/probe/:machine", func(c *fiber.Ctx) error {
 		return deleteProbeHandler(c, payloadChannel)
 	})
-
-	// ##################
-	// Dashboard section
-	// ##################
-	dashboardOperator := dashboard.Handle(dashboardChannel)
-
-	app.Use(basicauth.New(basicauth.Config{
-		Next:  authFilterDashboardWS,
-		Realm: "Dashboard",
-		Authorizer: func(user, pass string) bool {
-			if user == "admin" {
-				ok, err := validateAuth(nil, pass)
-				if err != nil {
-					return false
-				}
-				return ok
-			}
-			return false
-		},
-	}))
 
 	app.Use("/dashws", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
@@ -82,12 +56,6 @@ func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *d
 		}
 	}))
 
-	app.Use(keyauth.New(keyauth.Config{
-		Next:      authFilterDashboard,
-		KeyLookup: "cookie:auth_token",
-		Validator: validateAuth,
-	}))
-
 	app.Get("/dashboard", func(c *fiber.Ctx) error {
 		return filesystem.SendFile(c, http.FS(dashboardStatic), "static/index.html")
 	})
@@ -95,15 +63,6 @@ func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *d
 	app.Get("/", func(c *fiber.Ctx) error {
 		return filesystem.SendFile(c, http.FS(dashboardStatic), "static/login.html")
 	})
-
-	// Letting it here for debugging purposes
-	// app.Get("/dashboard", func(c *fiber.Ctx) error {
-	// 	return c.SendFile("./server/static/index.html")
-	// })
-
-	// app.Get("/", func(c *fiber.Ctx) error {
-	// 	return c.SendFile("./server/static/login.html")
-	// })
 
 	return app
 }
