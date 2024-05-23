@@ -90,6 +90,7 @@
             <tr>
                 <th>Probe Name</th>
                 <th>Probe Status</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="probeTable">
@@ -110,6 +111,7 @@
                 const row = probeTable.insertRow();
                 const cellName = row.insertCell(0);
                 const cellStatus = row.insertCell(1);
+                const cellActions = row.insertCell(2);
                 cellName.textContent = probe.name;
                 if (probe.status === 'normal') {
                     cellStatus.style.color = '#4CAF50';
@@ -121,6 +123,21 @@
                     cellStatus.style.color = '#F44336';
                     cellStatus.textContent = probe.status + ' 🚨';
                 }
+                const actionButton = document.createElement('button');
+                actionButton.textContent = 'Delete';
+                actionButton.onclick = function () {
+                    // DELETE request to the server
+                    fetch(`/probe/${probe.name}`, {
+                        method: 'DELETE'
+                    }).then(response => {
+                        if (response.ok) {
+                            console.log('Probe deleted successfully');
+                        } else {
+                            console.error('Failed to delete probe');
+                        }
+                    });
+                };
+                cellActions.appendChild(actionButton);
             });
         };
 
