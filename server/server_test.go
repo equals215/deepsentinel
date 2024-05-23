@@ -9,12 +9,15 @@ import (
 	"time"
 
 	"github.com/equals215/deepsentinel/config"
+	"github.com/equals215/deepsentinel/dashboard"
 	"github.com/equals215/deepsentinel/monitoring"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewServer(t *testing.T) {
-	var testChan = make(chan *monitoring.Payload)
+	var payloadTestChan = make(chan *monitoring.Payload)
+	var dashboardTestChan = make(chan *dashboard.Data)
+
 	var testTransport = &http.Transport{
 		Dial: (&net.Dialer{
 			Timeout: 5 * time.Second,
@@ -30,12 +33,11 @@ func TestNewServer(t *testing.T) {
 	}
 
 	go func() {
-		for payload := range testChan {
+		for payload := range payloadTestChan {
 			_ = payload
 		}
 	}()
-	s := newServer(testChan)
-
+	s := newServer(payloadTestChan, dashboardTestChan)
 	// Test if the server is created
 	assert.NotNil(t, s, "newServer() returned nil")
 

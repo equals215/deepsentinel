@@ -158,8 +158,8 @@ sudo ./deepsentinel-agent install
 
 3. Your agent should now be sending alive signals to the server. Check the server's logs to ensure that everything is setup properly.  
 
-## Credits
-> TBD
+## Credits and Thanks
+- Thanks to [@sovajri7](https://github.com/sovajri7) for troubleshooting and giving feature ideas
 
 ## License
 
