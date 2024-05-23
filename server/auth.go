@@ -11,14 +11,44 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 )
 
-var protectedURLs = []*regexp.Regexp{
+var apiProtectedURLs = []*regexp.Regexp{
 	regexp.MustCompile("^/probe(/.*)?$"),
 }
 
-func authFilter(c *fiber.Ctx) bool {
+var dashboardProtectedURLs = []*regexp.Regexp{
+	regexp.MustCompile("^/dashboard$"),
+}
+
+var dashboardWSprotectedURLs = []*regexp.Regexp{
+	regexp.MustCompile("^/dashws(/.*)?$"),
+}
+
+func authFilterAPI(c *fiber.Ctx) bool {
 	originalURL := strings.ToLower(c.OriginalURL())
 
-	for _, pattern := range protectedURLs {
+	for _, pattern := range apiProtectedURLs {
+		if pattern.MatchString(originalURL) {
+			return false
+		}
+	}
+	return true
+}
+
+func authFilterDashboardWS(c *fiber.Ctx) bool {
+	originalURL := strings.ToLower(c.OriginalURL())
+
+	for _, pattern := range dashboardWSprotectedURLs {
+		if pattern.MatchString(originalURL) {
+			return false
+		}
+	}
+	return true
+}
+
+func authFilterDashboard(c *fiber.Ctx) bool {
+	originalURL := strings.ToLower(c.OriginalURL())
+
+	for _, pattern := range dashboardProtectedURLs {
 		if pattern.MatchString(originalURL) {
 			return false
 		}
