@@ -1,7 +1,9 @@
 package server
 
 import (
+	"embed"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"time"
 
@@ -9,9 +11,13 @@ import (
 	"github.com/equals215/deepsentinel/monitoring"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"github.com/gofiber/fiber/v2/utils"
 )
+
+//go:embed static/*
+var dashboardStatic embed.FS
 
 func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *dashboard.Data) *fiber.App {
 	dashboardOperator := dashboard.Handle(dashboardChannel)
@@ -55,6 +61,10 @@ func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *d
 			}
 		}
 	}))
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return filesystem.SendFile(c, http.FS(dashboardStatic), "static/index.html")
+	})
 
 	return app
 }
