@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏭🛩️ deepsentinel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1e1e1e;
+            color: #f5f5f5;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>.deepsentinel dash login.</h1>
+    <form action="/login" method="POST">
+        <input type="password" name="auth_token" placeholder="auth-token" required>
+        <button type="submit">login</button>
+    </form>
+    <script>
+        function setCookie(name, value, days) {
+            var expires = "";
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        }
+
+        function deleteCookie(name) {
+            document.cookie = name + '=; Max-Age=-99999999;';
+        }
+
+        function getCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function authenticate(auth_token) {
+            var xhr = new XMLHttpRequest();
+            setCookie("auth_token", auth_token, 1);
+            xhr.open("GET", `${window.location.origin}/dashboard`, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        // Authentication successful, redirect or perform other actions
+                        console.log("Authentication successful");
+                        window.location.href = "/dashboard";
+                    } else if (xhr.status === 401) {
+                        // Authentication failed, handle error
+                        console.log("Authentication failed");
+                        deleteCookie("auth_token");
+                        alert("Invalid auth_token. Please try again.");
+                    } else {
+                        // Other error, handle accordingly
+                        console.log("An error occurred");
+                        deleteCookie("auth_token");
+                        window.location.href = "/";
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        document.querySelector('button[type="submit"]').addEventListener("click", function(event) {
+            event.preventDefault();
+            var auth_token = document.querySelector('input[name="auth_token"]').value;
+            authenticate(auth_token);
+        });
+        
+        // Check if cookie is present on page load
+        var auth_tokenCookie = getCookie("auth_token");
+        if (auth_tokenCookie) {
+            authenticate(auth_tokenCookie);
+        }
+    </script>
+</body>
+
+</html>
