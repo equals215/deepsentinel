@@ -66,6 +66,11 @@ func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *d
 		return filesystem.SendFile(c, http.FS(dashboardStatic), "static/index.html")
 	})
 
+	// Letting it here for debugging purposes
+	// app.Get("/", func(c *fiber.Ctx) error {
+	// 	return c.SendFile("./server/static/index.html")
+	// })
+
 	return app
 }
 
