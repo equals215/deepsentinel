@@ -18,8 +18,7 @@ import (
 //go:embed static/*
 var dashboardStatic embed.FS
 
-func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *dashboard.Data) *fiber.App {
-	dashboardOperator := dashboard.Handle(dashboardChannel)
+func newServer(payloadChannel chan *monitoring.Payload, dashboardOperator *dashboard.Operator) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "DeepSentinel API",
 	})
@@ -36,33 +35,35 @@ func newServer(payloadChannel chan *monitoring.Payload, dashboardChannel chan *d
 		return deleteProbeHandler(c, payloadChannel)
 	})
 
-	app.Use("/dashws", func(c *fiber.Ctx) error {
-		if websocket.IsWebSocketUpgrade(c) {
-			c.Locals("allowed", true)
-			return c.Next()
-		}
-		return fiber.ErrUpgradeRequired
-	})
-
-	app.Get("/dashws", websocket.New(func(c *websocket.Conn) {
-		worker, workerID := dashboardOperator.NewWorker()
-		defer dashboardOperator.RemoveWorker(workerID)
-
-		for {
-			select {
-			case data := <-worker:
-				c.WriteJSON(data)
+	if dashboardOperator != nil {
+		app.Use("/dashws", func(c *fiber.Ctx) error {
+			if websocket.IsWebSocketUpgrade(c) {
+				c.Locals("allowed", true)
+				return c.Next()
 			}
-		}
-	}))
+			return fiber.ErrUpgradeRequired
+		})
 
-	app.Get("/dashboard", func(c *fiber.Ctx) error {
-		return filesystem.SendFile(c, http.FS(dashboardStatic), "static/index.html")
-	})
+		app.Get("/dashws", websocket.New(func(c *websocket.Conn) {
+			worker, workerID := dashboardOperator.NewWorker()
+			defer dashboardOperator.RemoveWorker(workerID)
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		return filesystem.SendFile(c, http.FS(dashboardStatic), "static/login.html")
-	})
+			for {
+				select {
+				case data := <-worker:
+					c.WriteJSON(data)
+				}
+			}
+		}))
+
+		app.Get("/dashboard", func(c *fiber.Ctx) error {
+			return filesystem.SendFile(c, http.FS(dashboardStatic), "static/index.html")
+		})
+
+		app.Get("/", func(c *fiber.Ctx) error {
+			return filesystem.SendFile(c, http.FS(dashboardStatic), "static/login.html")
+		})
+	}
 
 	return app
 }

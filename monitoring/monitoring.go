@@ -53,7 +53,7 @@ type probeObject struct {
 }
 
 // Handle function handles the payload from the API server
-func Handle(channel chan *Payload, dashboardChannel chan *dashboard.Data) {
+func Handle(channel chan *Payload, dashboardOperator *dashboard.Operator) {
 	log.Debug("Starting monitoring.Handle")
 	var probeMap sync.Map
 	var probeList = make([]string, 0)
@@ -62,10 +62,14 @@ func Handle(channel chan *Payload, dashboardChannel chan *dashboard.Data) {
 	for {
 		select {
 		case <-timer.C:
-			// Send the global status of all probes to the dashboard
+			if dashboardOperator == nil {
+				continue
+			}
+
 			dashboardPayload := &dashboard.Data{
 				Probes: make([]*dashboard.Probe, 0),
 			}
+
 			for _, probe := range probeList {
 				if loaded, ok := probeMap.Load(probe); ok {
 					probe := loaded.(*probeObject)
@@ -78,7 +82,8 @@ func Handle(channel chan *Payload, dashboardChannel chan *dashboard.Data) {
 					dashboardPayload.Probes = append(dashboardPayload.Probes, dashboardProbe)
 				}
 			}
-			dashboardChannel <- dashboardPayload
+
+			dashboardOperator.In <- dashboardPayload
 			timer.Reset(5 * time.Second)
 			continue
 		case payload := <-channel:
