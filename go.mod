@@ -10,6 +10,7 @@ require (
 	github.com/grongor/panicwatch v1.2.0
 	github.com/jxsl13/osfacts v0.4.0
 	github.com/kristinjeanna/redact v1.0.0
+	github.com/mrz1836/go-sanitize v1.3.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
