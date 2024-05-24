@@ -117,16 +117,27 @@
                 const cellStatus = row.insertCell(1);
                 const cellActions = row.insertCell(2);
                 cellName.textContent = probe.name;
-                if (probe.status === 'normal') {
-                    cellStatus.style.color = '#4CAF50';
-                    cellStatus.textContent = probe.status + ' ✅';
-                } else if (probe.status === 'degraded') {
-                    cellStatus.style.color = '#f0cc62';
-                    cellStatus.textContent = probe.status;
-                } else {
-                    cellStatus.style.color = '#F44336';
-                    cellStatus.textContent = probe.status + ' 🚨';
+                switch (probe.status) {
+                    case 'normal':
+                        cellStatus.style.color = '#4CAF50';
+                        cellStatus.textContent = probe.status + ' ✅';
+                        break;
+                    case 'degraded':
+                        cellStatus.style.color = '#f0cc62';
+                        cellStatus.textContent = probe.status + ' ⚠️';
+                        break;
+                    case 'failed':
+                    case 'alertedLow':
+                    case 'alertedHigh':
+                        cellStatus.style.color = '#F44336';
+                        cellStatus.textContent = probe.status + ' 🚨';
+                        break;
+                    default:
+                        cellStatus.style.color = '#f5f5f5';
+                        cellStatus.textContent = probe.status;
+                        break;
                 }
+
                 const actionButton = document.createElement('button');
                 actionButton.textContent = 'Delete';
                 actionButton.onclick = function () {
