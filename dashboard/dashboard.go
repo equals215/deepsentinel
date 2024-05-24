@@ -16,16 +16,18 @@ type Data struct {
 type Operator struct {
 	sync.Mutex
 	workers map[int]chan *Data
+	In      chan *Data
 }
 
-func Handle(dataChan chan *Data) *Operator {
+func Handle() *Operator {
 	operator := &Operator{
 		workers: make(map[int]chan *Data),
+		In:      make(chan *Data),
 	}
-	go func() {
+	go func(operator *Operator) {
 		for {
 			select {
-			case data := <-dataChan:
+			case data := <-operator.In:
 				operator.Lock()
 				for _, worker := range operator.workers {
 					worker <- data
@@ -33,7 +35,7 @@ func Handle(dataChan chan *Data) *Operator {
 				operator.Unlock()
 			}
 		}
-	}()
+	}(operator)
 	return operator
 }
 

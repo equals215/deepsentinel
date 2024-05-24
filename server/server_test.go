@@ -16,7 +16,7 @@ import (
 
 func TestNewServer(t *testing.T) {
 	var payloadTestChan = make(chan *monitoring.Payload)
-	var dashboardTestChan = make(chan *dashboard.Data)
+	var dashboardOperator *dashboard.Operator
 
 	var testTransport = &http.Transport{
 		Dial: (&net.Dialer{
@@ -37,7 +37,7 @@ func TestNewServer(t *testing.T) {
 			_ = payload
 		}
 	}()
-	s := newServer(payloadTestChan, dashboardTestChan)
+	s := newServer(payloadTestChan, dashboardOperator)
 	// Test if the server is created
 	assert.NotNil(t, s, "newServer() returned nil")
 

@@ -15,8 +15,8 @@ import (
 // Cmd adds the API server command to the root command
 func Cmd(rootCmd *cobra.Command) {
 	var noAlerting bool
+	var noDash bool
 	payloadChannel := make(chan *monitoring.Payload)
-	dashboardChannel := make(chan *dashboard.Data)
 
 	serverCmd := &cobra.Command{
 		Use:   "run",
@@ -29,13 +29,18 @@ func Cmd(rootCmd *cobra.Command) {
 			alerting.Init(config.Server, noAlerting)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Infof("————————————")
-
+			var dashboardOperator *dashboard.Operator
 			config.PrintServerConfig()
-			go monitoring.Handle(payloadChannel, dashboardChannel)
+
+			if !noDash {
+				dashboardOperator = dashboard.Handle()
+			} else {
+				log.Warn("Dashboard disabled")
+			}
+			go monitoring.Handle(payloadChannel, dashboardOperator)
 
 			addr := fmt.Sprintf("%s:%d", config.Server.ListeningAddress, config.Server.Port)
-			newServer(payloadChannel, dashboardChannel).Listen(addr)
+			newServer(payloadChannel, dashboardOperator).Listen(addr)
 			// Start panicwatch to catch panics
 			err := panicwatch.Start(panicwatch.Config{
 				OnPanic: func(p panicwatch.Panic) {
@@ -53,6 +58,7 @@ func Cmd(rootCmd *cobra.Command) {
 		},
 	}
 	serverCmd.Flags().BoolVarP(&noAlerting, "no-alert", "", false, "Disable alerting")
+	serverCmd.Flags().BoolVarP(&noDash, "no-dashboard", "", false, "Disable dashboard")
 	serverCmd.Flags().String("address", "0.0.0.0", "Listening address\nEnvironment variable: DEEPSENTINEL_ADDRESS\n\b")
 	serverCmd.Flags().String("port", "5000", "Listening port\nEnvironment variable: DEEPSENTINEL_PORT\n\b")
 	serverCmd.Flags().String("probe-inactivity-delay", "2s", "Delay before considering a probe inactive\nEnvironment variable: DEEPSENTINEL_PROBE_INACTIVITY_DELAY\n\b")
