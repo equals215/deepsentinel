@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/equals215/deepsentinel/agent"
 	"github.com/equals215/deepsentinel/config"
 	"github.com/equals215/deepsentinel/daemonize"
+	"github.com/equals215/deepsentinel/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -66,21 +66,21 @@ func installCmd(rootCmd *cobra.Command) {
 
 			fmt.Print("Input the server address (ex.: http://localhost:8080): ")
 			fmt.Scanln(&serverAddress)
-			err = config.AgentSetServerAddress(strings.ReplaceAll(serverAddress, "\n", ""))
+			err = config.AgentSetServerAddress(utils.CleanString(serverAddress))
 			if err != nil {
 				return err
 			}
 
 			fmt.Print("Input the auth token: ")
 			fmt.Scanln(&authToken)
-			err = config.AgentSetAuthToken(strings.ReplaceAll(authToken, "\n", ""))
+			err = config.AgentSetAuthToken(utils.CleanString(authToken))
 			if err != nil {
 				return err
 			}
 
 			fmt.Print("Input the machine name: ")
 			fmt.Scanln(&machineName)
-			err = config.AgentSetMachineName(strings.ReplaceAll(machineName, "\n", ""))
+			err = config.AgentSetMachineName(utils.CleanString(machineName))
 			if err != nil {
 				return err
 			}

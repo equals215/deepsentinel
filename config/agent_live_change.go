@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/equals215/deepsentinel/utils"
+	"github.com/mrz1836/go-sanitize"
 	"github.com/spf13/viper"
 )
 
@@ -20,7 +22,7 @@ func AgentSetServerAddress(args ...any) error {
 		return fmt.Errorf("too many arguments")
 	}
 
-	address := args[0].(string)
+	address := sanitize.URL(args[0].(string))
 	url, err := url.Parse(address)
 	if err != nil {
 		return fmt.Errorf("Invalid URL: %s", err)
@@ -49,7 +51,7 @@ func AgentSetAuthToken(args ...any) error {
 		return fmt.Errorf("too many arguments")
 	}
 
-	token := args[0].(string)
+	token := utils.CleanString(args[0].(string))
 
 	Agent.Lock()
 	viper.Set("auth-token", token)
@@ -71,7 +73,7 @@ func AgentSetMachineName(args ...any) error {
 		return fmt.Errorf("too many arguments")
 	}
 
-	name := args[0].(string)
+	name := utils.CleanString(args[0].(string))
 
 	Agent.Lock()
 	viper.Set("machine-name", name)
