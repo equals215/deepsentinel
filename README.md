@@ -16,8 +16,9 @@ If you ever worried "What would happen if my monitoring/alerting systems fail?" 
 
 <p align="center">
   <a href="#key-features">Key Features</a> •
-  <a href="#how-to-use">How To Use</a> •
-  <a href="#credits">Credits</a> •
+  <a href="#install-server">Install</a> •
+  <a href="#dashboard">Dashboard</a> •
+  <a href="#credits-and-thanks">Credits</a> •
   <a href="#license">License</a>
 </p>
 <p align="center">
@@ -52,9 +53,8 @@ DeepSentinel is thought and coded to fit very niche use-cases where a reliabilit
     - No actions required on the server-side
 * `agent` daemon is live configurable and live unregisterable
 
-## How To Use
-### Install Server
-#### Via Docker
+## Install Server
+### Docker
 On any instance that has Docker installed you can run the following commands :
 
 ```bash
@@ -82,28 +82,25 @@ Adapt environment variables based on the config you want to apply.
 
 **You will have to grab the auth token from either the logs or the config file bind mounted to your host**
 
-#### Via binaries
+---
+
+### Binaries
 1. Get the server binary that matches your system under the [Release section](https://github.com/equals215/deepsentinel/releases).  
-- With `wget` :
 
 ```bash
 wget https://github.com/equals215/deepsentinel/releases/download/v0.0.3-untested/deepsentinel-server-linux-amd64 -O deepsentinel-server && \
 chmod +x deepsentinel-server
 ```
 
-- With `curl` :
-```bash
-curl -o deepsentinel-server https://github.com/equals215/deepsentinel/releases/download/v0.0.3-untested/deepsentinel-server-linux-amd64 && \
-chmod +x deepsentinel-server
-```
-
 2. Now you have to configure the server :  
 
-Create the config file :
 ```bash
 mkdir -p /etc/deepsentinel/
 nano /etc/deepsentinel/server-config.json
 ```
+
+Edit the following configuration example as you wish :  
+
 ```json
 {
   "address": "0.0.0.0",
@@ -131,20 +128,14 @@ nano /etc/deepsentinel/server-config.json
 
 4. The server should now be able to accept incoming connections. Remember to grab the auth token from either the logs or the config file at `/etc/deepsentinel/server-config.json` — you will need it to configure agents.
 
-### Install Agent
+## Install Agent
 
 As the agent is supposed to be run as close to the system as possible, it's not a good practice to run it inside a Docker container, hence why there is not Docker container for it 🤠  
+
 1. Get the agent binary that matches your system under the [Release section](https://github.com/equals215/deepsentinel/releases).  
 
-- With `wget` :
 ```bash
 wget https://github.com/equals215/deepsentinel/releases/download/v0.0.3-untested/deepsentinel-agent-linux-amd64 -O deepsentinel-agent && \
-chmod +x deepsentinel-agent
-```
-
-- With `curl` :
-```bash
-curl -o deepsentinel-agent https://github.com/equals215/deepsentinel/releases/download/v0.0.3-untested/deepsentinel-agent-linux-amd64 && \
 chmod +x deepsentinel-agent
 ```
 
@@ -157,6 +148,22 @@ sudo ./deepsentinel-agent install
 ```
 
 3. Your agent should now be sending alive signals to the server. Check the server's logs to ensure that everything is setup properly.  
+
+## Dashboard
+
+A simple yet effective dashboard was introduced in `v0.0.4-untested`.  
+This dashboard lets you see the status of your machines at a glance and even execute actions on the probes such as `Delete` them in case a machine died and you don't want to be alerted.  
+It can be disabled using the `--no-dashboard` flag on the `deepsentinel-server run` command.  
+
+<img width="500" alt="dashboard screenshot" src="https://github.com/equals215/deepsentinel/assets/20166324/3549ce23-36ff-4fea-a72f-969c8eeede2c">
+
+The dashboard is protected with a login mechanism that uses `auth-token` from the server to authenticate against the back-end and pass the `auth-token` as a cookie.  
+
+<img width="500" alt="dashboard login screenshot" src="https://github.com/equals215/deepsentinel/assets/20166324/7c7802e5-f6bc-4970-9ae1-a308d230bdcd">  
+
+Behind the cool HTML and JS involved, the dashboard gets it's data from a WebSocket. If you wish to integrate your own dashboard and make use of the WebSocket, here it is : `/dashws` and it requires basic auth.  
+Here's an example URL to use the WebSocket : `ws://admin:<auth-token>@<host:port>/dashws`  
+**Also note that the WebSocket is disabled if you use `--no-dashboard`**
 
 ## Credits and Thanks
 - Thanks to [@sovajri7](https://github.com/sovajri7) for troubleshooting and giving feature ideas
