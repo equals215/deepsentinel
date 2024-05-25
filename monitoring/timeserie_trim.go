@@ -4,7 +4,7 @@ import log "github.com/sirupsen/logrus"
 
 const trimTimeSeriesThreshold = 100
 
-func (p *probeObject) trimTimeSerie() {
+func (p *probeWorker) trimTimeSerie() {
 	p.timeSerie.Lock()
 	defer p.timeSerie.Unlock()
 
@@ -55,7 +55,7 @@ func (p *probeObject) trimTimeSerie() {
 	}
 }
 
-func (p *probeObject) trimToLastNode() {
+func (p *probeWorker) trimToLastNode() {
 	p.timeSerie.head.previous = nil
 	p.timeSerie.size = 1
 	log.WithFields(log.Fields{
@@ -65,7 +65,7 @@ func (p *probeObject) trimToLastNode() {
 	return
 }
 
-func (p *probeObject) trimToNode(count int) {
+func (p *probeWorker) trimToNode(count int) {
 	currentNode := p.timeSerie.head
 	for i := 0; i < count-1; i++ {
 		currentNode = currentNode.previous
@@ -79,7 +79,7 @@ func (p *probeObject) trimToNode(count int) {
 	return
 }
 
-func (p *probeObject) trimToGivenNode(currentNode *timeSerieNode, count int) {
+func (p *probeWorker) trimToGivenNode(currentNode *timeSerieNode, count int) {
 	currentNode.previous = nil
 	p.timeSerie.size = count
 	log.WithFields(log.Fields{

@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"sync"
+	"time"
 )
 
 type Probe struct {
@@ -15,14 +16,16 @@ type Data struct {
 
 type Operator struct {
 	sync.Mutex
-	workers map[int]chan *Data
-	In      chan *Data
+	workers     map[int]chan *Data
+	PollingFreq time.Duration
+	In          chan *Data
 }
 
 func Handle() *Operator {
 	operator := &Operator{
-		workers: make(map[int]chan *Data),
-		In:      make(chan *Data),
+		workers:     make(map[int]chan *Data),
+		PollingFreq: 5 * time.Second,
+		In:          make(chan *Data),
 	}
 	go func(operator *Operator) {
 		for {
