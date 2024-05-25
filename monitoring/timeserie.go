@@ -31,17 +31,32 @@ func stringtoStatusType(str string) (statusType, error) {
 	return fail, errors.New("invalid status string")
 }
 
+func (s statusType) String() string {
+	statusStr := map[statusType]string{
+		pass: "pass",
+		warn: "warn",
+		fail: "fail",
+	}
+	return statusStr[s]
+}
+
 type serviceStatus struct {
 	status statusType
 	count  int
 }
 
+type servicesStatus map[string]*serviceStatus
+
 type timeSerieNode struct {
 	timestamp time.Time
-	services  map[string]*serviceStatus
+	services  servicesStatus
 	previous  *timeSerieNode
 }
 
+// probeTimeSerie is a mutexed linked list of timeSerieNode
+// It is used to store the status of the services
+// The head of the list is the latest status
+// It goes like : previous <- ... <- head
 type probeTimeSerie struct {
 	sync.Mutex
 	head *timeSerieNode
@@ -59,12 +74,11 @@ func (p *probeWorker) workServices(payload *Payload) {
 }
 
 func (p *probeWorker) storePayload(payload *Payload) {
-	tempServiceStatus := make(map[string]*serviceStatus)
-	tempCount := 0
+	tempServiceStatus := make(servicesStatus)
 
 	for service, state := range payload.Services {
+		tempCount := 0
 		parsedStatus, err := stringtoStatusType(state)
-
 		if err != nil {
 			log.WithFields(log.Fields{
 				"probe":   p.name,
@@ -90,7 +104,7 @@ func (p *probeWorker) storePayload(payload *Payload) {
 			"probe":   p.name,
 			"machine": payload.Machine,
 			"service": service,
-			"status":  parsedStatus,
+			"status":  parsedStatus.String(),
 			"count":   tempCount,
 		}).Trace("Service status stored in timeserie")
 	}
@@ -119,24 +133,22 @@ func (p *probeWorker) checkAlert() {
 
 	for service, status := range p.timeSerie.head.services {
 		var alertingStatus string
-		alert := false
+		toAlert := false
 
 		lowThreshhold := config.Server.FailedToAlertedLowThreshold
 		highThreshhold := config.Server.FailedToAlertedLowThreshold + config.Server.AlertedLowToAlertedHighThreshold
 
-		if status.status == fail && status.count >= lowThreshhold && status.count < highThreshhold {
+		if status.status == fail && status.count == lowThreshhold && status.count < highThreshhold {
 			alertingStatus = "low"
-			alert = true
+			toAlert = true
 		} else if status.status == fail && status.count == highThreshhold {
 			alertingStatus = "high"
-			alert = true
-		} else if status.status == fail && status.count > highThreshhold {
-			alert = false
-		} else {
-			continue
+			toAlert = true
+		} else if status.status == fail {
+			toAlert = false
 		}
 
-		if alert {
+		if toAlert {
 			log.WithFields(log.Fields{
 				"probe":   p.name,
 				"machine": p.name,
@@ -145,7 +157,7 @@ func (p *probeWorker) checkAlert() {
 			}).Warnf("Service in fail status. Alerting %s", alertingStatus)
 			service = p.name + "-" + service
 			alerting.ServerAlert("service", service, alertingStatus)
-		} else if !alert && status.count%10 == 0 {
+		} else if status.status == fail && status.count > lowThreshhold && status.count%10 == 0 {
 			log.WithFields(log.Fields{
 				"probe":   p.name,
 				"machine": p.name,
