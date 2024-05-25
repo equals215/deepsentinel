@@ -37,7 +37,10 @@ func TestNewServer(t *testing.T) {
 			_ = payload
 		}
 	}()
-	s := newServer(payloadTestChan, dashboardOperator)
+
+	monitoringOperator := monitoring.Handle(dashboardOperator)
+
+	s := newServer(monitoringOperator, dashboardOperator)
 	// Test if the server is created
 	assert.NotNil(t, s, "newServer() returned nil")
 

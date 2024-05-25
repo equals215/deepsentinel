@@ -41,102 +41,140 @@ type Payload struct {
 	Machine       string            `json:"-"`
 }
 
-type probeObject struct {
+type probeWorker struct {
 	sync.Mutex
-	name       string
-	data       chan *Payload
-	stop       chan bool
-	status     probeStatus
-	counter    int
-	lastNormal time.Time
-	timeSerie  *probeTimeSerie
+	name         string
+	data         chan *Payload
+	stop         chan bool
+	status       probeStatus
+	counter      int
+	lastNormal   time.Time
+	timeSerie    *probeTimeSerie
+	headOperator *Operator
+}
+
+type Operator struct {
+	sync.Mutex
+	In                chan *Payload
+	probeMap          sync.Map
+	probeList         []string
+	dashboardOperator *dashboard.Operator
 }
 
 // Handle function handles the payload from the API server
-func Handle(channel chan *Payload, dashboardOperator *dashboard.Operator) {
+func Handle(dashboardOperator *dashboard.Operator) *Operator {
 	log.Debug("Starting monitoring.Handle")
-	var probeMap sync.Map
-	var probeList = make([]string, 0)
-	var timer = time.NewTimer(5 * time.Second)
-
-	for {
-		select {
-		case <-timer.C:
-			if dashboardOperator == nil {
-				continue
-			}
-
-			dashboardPayload := &dashboard.Data{
-				Probes: make([]*dashboard.Probe, 0),
-			}
-
-			for _, probe := range probeList {
-				if loaded, ok := probeMap.Load(probe); ok {
-					probe := loaded.(*probeObject)
-					probe.Lock()
-					dashboardProbe := &dashboard.Probe{
-						Name:   strings.Clone(probe.name),
-						Status: strings.Clone(probe.status.String()),
-					}
-					probe.Unlock()
-					dashboardPayload.Probes = append(dashboardPayload.Probes, dashboardProbe)
+	operator := &Operator{
+		In:                make(chan *Payload),
+		probeMap:          sync.Map{},
+		probeList:         make([]string, 0),
+		dashboardOperator: dashboardOperator,
+	}
+	go func(operator *Operator, dashboardOperator *dashboard.Operator) {
+		var timer = time.NewTimer(0)
+		if dashboardOperator != nil {
+			timer = time.NewTimer(operator.dashboardOperator.PollingFreq)
+		}
+		for {
+			select {
+			case <-timer.C:
+				if dashboardOperator == nil {
+					continue
 				}
-			}
 
-			dashboardOperator.In <- dashboardPayload
-			timer.Reset(5 * time.Second)
-			continue
-		case payload := <-channel:
-			if loaded, ok := probeMap.Load(payload.Machine); ok {
-				probe := loaded.(*probeObject)
-				if payload.MachineStatus == "delete" {
-					// Delete the probe
-					probe.Lock()
-					for i, name := range probeList {
-						if name == payload.Machine {
-							probeList = append(probeList[:i], probeList[i+1:]...)
-							break
-						}
+				operator.dashboardOperator.Lock()
+				operator.InformDashboard()
+				timer.Reset(operator.dashboardOperator.PollingFreq)
+				operator.dashboardOperator.Unlock()
+
+			case payload := <-operator.In:
+				if loaded, ok := operator.probeMap.Load(payload.Machine); ok {
+					probe, ok := loaded.(*probeWorker)
+					if !ok {
+						log.WithFields(log.Fields{
+							"machine": payload.Machine,
+						}).Fatal("Failed to load probe")
 					}
-					probe.delete()
-					probeMap.Delete(payload.Machine)
+
+					probe.informWorker(payload)
 				} else {
-					// Send the payload to the probe
-					probe.data <- payload
-				}
-			} else {
-				// Create a new probe
-				newProbe := makeProbe(payload)
+					// Create a new probe
+					newProbe := makeProbe(payload, operator)
 
-				value, loaded := probeMap.LoadOrStore(payload.Machine, newProbe)
-				if loaded {
+					value, loaded := operator.probeMap.LoadOrStore(payload.Machine, newProbe)
+					if loaded {
+						log.WithFields(log.Fields{
+							"machine": payload.Machine,
+						}).Fatal("Machine already exists")
+					}
+
+					probe, ok := value.(*probeWorker)
+					if !ok {
+						log.WithFields(log.Fields{
+							"machine": payload.Machine,
+						}).Fatal("Failed to load probe")
+					}
+
 					log.WithFields(log.Fields{
+						"probe":   probe.name,
 						"machine": payload.Machine,
-					}).Fatal("Machine already exists")
+						"status":  probe.status,
+					}).Info("Starting probe thread")
+
+					operator.Lock()
+					operator.probeList = append(operator.probeList, payload.Machine)
+					operator.Unlock()
+
+					go probe.work()
+
+					probe.informWorker(payload)
 				}
-
-				probe, ok := value.(*probeObject)
-				if !ok {
-					log.WithFields(log.Fields{
-						"machine": payload.Machine,
-					}).Fatal("Failed to load probe")
-				}
-
-				log.WithFields(log.Fields{
-					"probe":   probe.name,
-					"machine": payload.Machine,
-					"status":  probe.status,
-				}).Info("Starting probe thread")
-
-				probeList = append(probeList, payload.Machine)
-				go probe.work()
-				probe.data <- payload
 			}
 		}
+	}(operator, dashboardOperator)
+	return operator
+}
+
+func (o *Operator) InformDashboard() {
+	dashboardPayload := &dashboard.Data{
+		Probes: make([]*dashboard.Probe, 0),
+	}
+
+	for _, probe := range o.probeList {
+		if loaded, ok := o.probeMap.Load(probe); ok {
+			probe := loaded.(*probeWorker)
+			probe.Lock()
+			dashboardProbe := &dashboard.Probe{
+				Name:   strings.Clone(probe.name),
+				Status: strings.Clone(probe.status.String()),
+			}
+			probe.Unlock()
+			dashboardPayload.Probes = append(dashboardPayload.Probes, dashboardProbe)
+		}
+	}
+
+	o.dashboardOperator.In <- dashboardPayload
+}
+
+func (p *probeWorker) informWorker(payload *Payload) {
+	if payload.MachineStatus == "delete" {
+		p.Lock()
+		p.headOperator.Lock()
+		for i, name := range p.headOperator.probeList {
+			if name == payload.Machine {
+				p.headOperator.probeList = append(p.headOperator.probeList[:i], p.headOperator.probeList[i+1:]...)
+				break
+			}
+		}
+		p.delete()
+		p.headOperator.probeMap.Delete(payload.Machine)
+		p.headOperator.Unlock()
+	} else {
+		p.data <- payload
 	}
 }
 
-func (p *probeObject) work() {
+func (p *probeWorker) work() {
 	inactivityDelay, err := time.ParseDuration(config.Server.ProbeInactivityDelay)
 	if err != nil {
 		log.WithError(err).Fatal("Failed to parse inactivity delay")
@@ -172,7 +210,7 @@ func (p *probeObject) work() {
 	}
 }
 
-func (p *probeObject) timerIncrement() {
+func (p *probeWorker) timerIncrement() {
 	switch p.status {
 	case normal:
 		p.updateStatus()
@@ -204,7 +242,7 @@ func (p *probeObject) timerIncrement() {
 	}
 }
 
-func (p *probeObject) reset() {
+func (p *probeWorker) reset() {
 	if p.status > normal {
 		log.Infof("Machine %s is back in normal state\n", p.name)
 	}
@@ -213,7 +251,7 @@ func (p *probeObject) reset() {
 	p.lastNormal = time.Now()
 }
 
-func (p *probeObject) updateStatus() {
+func (p *probeWorker) updateStatus() {
 	p.status++
 	p.counter = 0
 	if p.status > normal {
@@ -224,7 +262,7 @@ func (p *probeObject) updateStatus() {
 	log.Infof("Machine %s is now in %s state\n", p.name, p.status.String())
 }
 
-func (p *probeObject) delete() {
+func (p *probeWorker) delete() {
 	log.WithFields(log.Fields{
 		"probe": p.name,
 	}).Info("Deleting probe")
@@ -233,8 +271,8 @@ func (p *probeObject) delete() {
 	close(p.stop)
 }
 
-func makeProbe(originPayload *Payload) *probeObject {
-	return &probeObject{
+func makeProbe(originPayload *Payload, operator *Operator) *probeWorker {
+	return &probeWorker{
 		name:       originPayload.Machine,
 		data:       make(chan *Payload, 1),
 		stop:       make(chan bool),
@@ -249,5 +287,6 @@ func makeProbe(originPayload *Payload) *probeObject {
 			},
 			size: 1,
 		},
+		headOperator: operator,
 	}
 }

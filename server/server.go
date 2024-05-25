@@ -18,7 +18,7 @@ import (
 //go:embed static/*
 var dashboardStatic embed.FS
 
-func newServer(payloadChannel chan *monitoring.Payload, dashboardOperator *dashboard.Operator) *fiber.App {
+func newServer(monitoringOperator *monitoring.Operator, dashboardOperator *dashboard.Operator) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "DeepSentinel API",
 	})
@@ -28,11 +28,11 @@ func newServer(payloadChannel chan *monitoring.Payload, dashboardOperator *dashb
 	app.Get("/health", getHealthHandler)
 
 	app.Post("/probe/:machine/report", func(c *fiber.Ctx) error {
-		return postProbeReportHandler(c, payloadChannel)
+		return postProbeReportHandler(c, monitoringOperator.In)
 	})
 
 	app.Delete("/probe/:machine", func(c *fiber.Ctx) error {
-		return deleteProbeHandler(c, payloadChannel)
+		return deleteProbeHandler(c, monitoringOperator.In)
 	})
 
 	if dashboardOperator != nil {

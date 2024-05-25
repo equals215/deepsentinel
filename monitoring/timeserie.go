@@ -48,7 +48,7 @@ type probeTimeSerie struct {
 	size int
 }
 
-func (p *probeObject) workServices(payload *Payload) {
+func (p *probeWorker) workServices(payload *Payload) {
 	p.timeSerie.Lock()
 	p.storePayload(payload)
 	if p.timeSerie.size > trimTimeSeriesThreshold {
@@ -58,7 +58,7 @@ func (p *probeObject) workServices(payload *Payload) {
 	p.timeSerie.Unlock()
 }
 
-func (p *probeObject) storePayload(payload *Payload) {
+func (p *probeWorker) storePayload(payload *Payload) {
 	tempServiceStatus := make(map[string]*serviceStatus)
 	tempCount := 0
 
@@ -112,7 +112,7 @@ func (p *probeObject) storePayload(payload *Payload) {
 	}).Trace("Payload stored in timeserie")
 }
 
-func (p *probeObject) checkAlert() {
+func (p *probeWorker) checkAlert() {
 	if p.timeSerie.head == nil {
 		return
 	}

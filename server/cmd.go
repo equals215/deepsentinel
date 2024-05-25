@@ -16,7 +16,6 @@ import (
 func Cmd(rootCmd *cobra.Command) {
 	var noAlerting bool
 	var noDash bool
-	payloadChannel := make(chan *monitoring.Payload)
 
 	serverCmd := &cobra.Command{
 		Use:   "run",
@@ -35,12 +34,14 @@ func Cmd(rootCmd *cobra.Command) {
 			if !noDash {
 				dashboardOperator = dashboard.Handle()
 			} else {
+				dashboardOperator = nil
 				log.Warn("Dashboard disabled")
 			}
-			go monitoring.Handle(payloadChannel, dashboardOperator)
+
+			monitoringOperator := monitoring.Handle(dashboardOperator)
 
 			addr := fmt.Sprintf("%s:%d", config.Server.ListeningAddress, config.Server.Port)
-			newServer(payloadChannel, dashboardOperator).Listen(addr)
+			newServer(monitoringOperator, dashboardOperator).Listen(addr)
 			// Start panicwatch to catch panics
 			err := panicwatch.Start(panicwatch.Config{
 				OnPanic: func(p panicwatch.Panic) {
