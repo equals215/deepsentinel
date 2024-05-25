@@ -53,6 +53,11 @@ type probeWorker struct {
 	headOperator *Operator
 }
 
+// Operator defines the handler for the monitoring
+// It contains the channel to receive the payload from the API server
+// It contains the map of the probes and the list of the probes
+// It contains the dashboard operator to inform the dashboard of the status of the probes
+// Everything that defines the monitoring event loop is here
 type Operator struct {
 	sync.Mutex
 	In                chan *Payload
@@ -83,7 +88,7 @@ func Handle(dashboardOperator *dashboard.Operator) *Operator {
 				}
 
 				operator.dashboardOperator.Lock()
-				operator.InformDashboard()
+				operator.informDashboard()
 				timer.Reset(operator.dashboardOperator.PollingFreq)
 				operator.dashboardOperator.Unlock()
 
@@ -135,7 +140,7 @@ func Handle(dashboardOperator *dashboard.Operator) *Operator {
 	return operator
 }
 
-func (o *Operator) InformDashboard() {
+func (o *Operator) informDashboard() {
 	dashboardPayload := &dashboard.Data{
 		Probes: make([]*dashboard.Probe, 0),
 	}
